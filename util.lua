@@ -1,17 +1,104 @@
-------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 -- YLua: A Lua metacircular virtual machine written in lua
 -- 
 -- NOTE that bytecode parser was derived from ChunkSpy5.3 
 --
 -- kelthuzadx<1948638989@qq.com>  Copyright (c) 2019 kelthuyang
--- ref: 
---  [1] http://luaforge.net/docman/83/98/ANoFrillsIntroToLua51VMInstructions.pdf
---  [2] http://files.catwell.info/misc/mirror/lua-5.2-bytecode-vm-dirk-laurie/lua52vm.html
-------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 util = {}
-------------------------------------------------------------------------------------------
--- Converter 
-------------------------------------------------------------------------------------------
+
+
+------------------------------------------------------------------
+-- Opcode table
+------------------------------------------------------------------
+util.iABC, util.iABx, util.iAsBx, util.iAx, isJ = 0, 1, 2, 3 , 4
+util.opcode = { 
+	[1]={ OP_MOVE =   iABC },
+	[2]={ OP_LOADI =   iAsBx },
+	[3]={ OP_LOADF =   iAsBx },
+	[4]={ OP_LOADK =   iABx },
+	[5]={ OP_LOADKX =   iABx },
+	[6]={ OP_LOADBOOL =   iABC },
+	[7]={ OP_LOADNIL =   iABC },
+	[8]={ OP_GETUPVAL =   iABC },
+	[9]={ OP_SETUPVAL =   iABC },
+	[10]={ OP_GETTABUP =   iABC },
+	[11]={ OP_GETTABLE =   iABC },
+	[12]={ OP_GETI =   iABC },
+	[13]={ OP_GETFIELD =   iABC },
+	[14]={ OP_SETTABUP =   iABC },
+	[15]={ OP_SETTABLE =   iABC },
+	[16]={ OP_SETI =   iABC },
+	[17]={ OP_SETFIELD =   iABC },
+	[18]={ OP_NEWTABLE =   iABC },
+	[19]={ OP_SELF =   iABC },
+	[20]={ OP_ADDI =   iABC },
+	[21]={ OP_ADDK =   iABC },
+	[22]={ OP_SUBK =   iABC },
+	[23]={ OP_MULK =   iABC },
+	[24]={ OP_MODK =   iABC },
+	[25]={ OP_POWK =   iABC },
+	[26]={ OP_DIVK =   iABC },
+	[27]={ OP_IDIVK =   iABC },
+	[28]={ OP_BANDK =   iABC },
+	[29]={ OP_BORK =   iABC },
+	[30]={ OP_BXORK =   iABC },
+	[31]={ OP_SHRI =   iABC },
+	[32]={ OP_SHLI =   iABC },
+	[33]={ OP_ADD =   iABC },
+	[34]={ OP_SUB =   iABC },
+	[35]={ OP_MUL =   iABC },
+	[36]={ OP_MOD =   iABC },
+	[37]={ OP_POW =   iABC },
+	[38]={ OP_DIV =   iABC },
+	[39]={ OP_IDIV =   iABC },
+	[40]={ OP_BAND =   iABC },
+	[41]={ OP_BOR =   iABC },
+	[42]={ OP_BXOR =   iABC },
+	[43]={ OP_SHL =   iABC },
+	[44]={ OP_SHR =   iABC },
+	[45]={ OP_MMBIN =   iABC },
+	[46]={ OP_MMBINI=   iABC },
+	[47]={ OP_MMBINK=   iABC },
+	[48]={ OP_UNM =   iABC },
+	[49]={ OP_BNOT =   iABC },
+	[50]={ OP_NOT =   iABC },
+	[51]={ OP_LEN =   iABC },
+	[52]={ OP_CONCAT =   iABC },
+	[53]={ OP_CLOSE =   iABC },
+	[54]={ OP_TBC =   iABC },
+	[55]={ OP_JMP =   isJ  },
+	[56]={ OP_EQ =   iABC },
+	[57]={ OP_LT =   iABC },
+	[58]={ OP_LE =   iABC },
+	[59]={ OP_EQK =   iABC },
+	[60]={ OP_EQI =   iABC },
+	[61]={ OP_LTI =   iABC },
+	[62]={ OP_LEI =   iABC },
+	[63]={ OP_GTI =   iABC },
+	[64]={ OP_GEI =   iABC },
+	[65]={ OP_TEST =   iABC },
+	[66]={ OP_TESTSET =   iABC },
+	[67]={ OP_CALL =   iABC },
+	[68]={ OP_TAILCALL =   iABC },
+	[69]={ OP_RETURN =   iABC },
+	[70]={ OP_RETURN0 =   iABC },
+	[71]={ OP_RETURN1 =   iABC },
+	[72]={ OP_FORLOOP =   iABx },
+	[73]={ OP_FORPREP =   iABx },
+	[74]={ OP_TFORPREP =   iABx },
+	[75]={ OP_TFORCALL =   iABC },
+	[76]={ OP_TFORLOOP=   iABx },
+	[77]={ OP_SETLIST =   iABC },
+	[78]={ OP_CLOSURE =   iABx },
+	[79]={ OP_VARARG =   iABC },
+	[80]={ OP_VARARGPREP =   iABC },
+	[81]={ OP_EXTRAARG =   iAx  },
+}
+
+------------------------------------------------------------------
+-- Code converter
+------------------------------------------------------------------
 util.convert_from = {} 
 util.convert_to = {}
 
@@ -129,12 +216,9 @@ end
 
 util.convert_to["long long"] = util.convert_to["int"]
 
-
-
-
-------------------------------------------------------------------------------------------
--- Global
-------------------------------------------------------------------------------------------
+------------------------------------------------------------------
+-- Global configurations
+------------------------------------------------------------------
 util.config = {
 	endianness = 1, 
 	size_int = 4,         

@@ -1,19 +1,13 @@
-------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 -- YLua: A Lua metacircular virtual machine written in lua
 -- 
 -- NOTE that bytecode parser was derived from ChunkSpy5.3 
 --
 -- kelthuzadx<1948638989@qq.com>  Copyright (c) 2019 kelthuyang
--- ref: 
---  [1] http://luaforge.net/docman/83/98/ANoFrillsIntroToLua51VMInstructions.pdf
---  [2] http://files.catwell.info/misc/mirror/lua-5.2-bytecode-vm-dirk-laurie/lua52vm.html
-------------------------------------------------------------------------------------------
+------------------------------------------------------------------
 parser = {}
 require("util")
 
------------------------------------------------------------------
--- Bytecode parser
------------------------------------------------------------------
 function parser.parse_bytecode(chunk)
 	local idx = 1
 	local previdx, len
@@ -217,7 +211,6 @@ function parser.parse_bytecode(chunk)
 
 		-- source file 
 		func.source53 = read_string53()
-		func.pos_source = previdx
 		if func.source == nil and level == 1 then func.source = funcname end
 
 		-- line where the function was defined
@@ -233,6 +226,13 @@ function parser.parse_bytecode(chunk)
 		func.code_size = read_int()
 		for i = 1, func.code_size do
 			func.code[i] = read_buf(util.config.size_instruction)
+			assert(#func.code[i] == 4 and type(func.code[i])=="string",
+			"expect 32 bits bytecode consumed")
+			func.code[i] =  (string.byte(func.code[i],1) &         0xff) | 
+							(string.byte(func.code[i],2) &       0xff00) |
+							(string.byte(func.code[i],3) &     0xff0000) |
+							(string.byte(func.code[i],4) & 0xff00000000)
+		   assert(type(func.code[i])=="number")
 		end   
 
 		-- constant
@@ -275,7 +275,9 @@ function parser.parse_bytecode(chunk)
 		return func
 	end
 
-	return read_function("chunk", 1)
+	local func = read_function("chunk", 1)
+	if (#chunk+1) ~= idx then error("should eof") end
+	return func
 end
 
 

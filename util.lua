@@ -7,93 +7,58 @@
 ------------------------------------------------------------------
 util = {}
 
-
 ------------------------------------------------------------------
 -- Opcode table
 ------------------------------------------------------------------
-util.iABC, util.iABx, util.iAsBx, util.iAx, isJ = 0, 1, 2, 3 , 4
+util.iABC, util.iABx, util.iAsBx, util.iAx = 0, 1, 2, 3
 util.opcode = { 
-	[1]={ OP_MOVE =   iABC },
-	[2]={ OP_LOADI =   iAsBx },
-	[3]={ OP_LOADF =   iAsBx },
-	[4]={ OP_LOADK =   iABx },
-	[5]={ OP_LOADKX =   iABx },
-	[6]={ OP_LOADBOOL =   iABC },
-	[7]={ OP_LOADNIL =   iABC },
-	[8]={ OP_GETUPVAL =   iABC },
-	[9]={ OP_SETUPVAL =   iABC },
-	[10]={ OP_GETTABUP =   iABC },
-	[11]={ OP_GETTABLE =   iABC },
-	[12]={ OP_GETI =   iABC },
-	[13]={ OP_GETFIELD =   iABC },
-	[14]={ OP_SETTABUP =   iABC },
-	[15]={ OP_SETTABLE =   iABC },
-	[16]={ OP_SETI =   iABC },
-	[17]={ OP_SETFIELD =   iABC },
-	[18]={ OP_NEWTABLE =   iABC },
-	[19]={ OP_SELF =   iABC },
-	[20]={ OP_ADDI =   iABC },
-	[21]={ OP_ADDK =   iABC },
-	[22]={ OP_SUBK =   iABC },
-	[23]={ OP_MULK =   iABC },
-	[24]={ OP_MODK =   iABC },
-	[25]={ OP_POWK =   iABC },
-	[26]={ OP_DIVK =   iABC },
-	[27]={ OP_IDIVK =   iABC },
-	[28]={ OP_BANDK =   iABC },
-	[29]={ OP_BORK =   iABC },
-	[30]={ OP_BXORK =   iABC },
-	[31]={ OP_SHRI =   iABC },
-	[32]={ OP_SHLI =   iABC },
-	[33]={ OP_ADD =   iABC },
-	[34]={ OP_SUB =   iABC },
-	[35]={ OP_MUL =   iABC },
-	[36]={ OP_MOD =   iABC },
-	[37]={ OP_POW =   iABC },
-	[38]={ OP_DIV =   iABC },
-	[39]={ OP_IDIV =   iABC },
-	[40]={ OP_BAND =   iABC },
-	[41]={ OP_BOR =   iABC },
-	[42]={ OP_BXOR =   iABC },
-	[43]={ OP_SHL =   iABC },
-	[44]={ OP_SHR =   iABC },
-	[45]={ OP_MMBIN =   iABC },
-	[46]={ OP_MMBINI=   iABC },
-	[47]={ OP_MMBINK=   iABC },
-	[48]={ OP_UNM =   iABC },
-	[49]={ OP_BNOT =   iABC },
-	[50]={ OP_NOT =   iABC },
-	[51]={ OP_LEN =   iABC },
-	[52]={ OP_CONCAT =   iABC },
-	[53]={ OP_CLOSE =   iABC },
-	[54]={ OP_TBC =   iABC },
-	[55]={ OP_JMP =   isJ  },
-	[56]={ OP_EQ =   iABC },
-	[57]={ OP_LT =   iABC },
-	[58]={ OP_LE =   iABC },
-	[59]={ OP_EQK =   iABC },
-	[60]={ OP_EQI =   iABC },
-	[61]={ OP_LTI =   iABC },
-	[62]={ OP_LEI =   iABC },
-	[63]={ OP_GTI =   iABC },
-	[64]={ OP_GEI =   iABC },
-	[65]={ OP_TEST =   iABC },
-	[66]={ OP_TESTSET =   iABC },
-	[67]={ OP_CALL =   iABC },
-	[68]={ OP_TAILCALL =   iABC },
-	[69]={ OP_RETURN =   iABC },
-	[70]={ OP_RETURN0 =   iABC },
-	[71]={ OP_RETURN1 =   iABC },
-	[72]={ OP_FORLOOP =   iABx },
-	[73]={ OP_FORPREP =   iABx },
-	[74]={ OP_TFORPREP =   iABx },
-	[75]={ OP_TFORCALL =   iABC },
-	[76]={ OP_TFORLOOP=   iABx },
-	[77]={ OP_SETLIST =   iABC },
-	[78]={ OP_CLOSURE =   iABx },
-	[79]={ OP_VARARG =   iABC },
-	[80]={ OP_VARARGPREP =   iABC },
-	[81]={ OP_EXTRAARG =   iAx  },
+    [1] = { MOVE = util.iABC },
+    [2] = { LOADK = util.iABx },
+    [3] = { LOADKX = util.iABx },
+    [4] = { LOADBOOL = util.iABC },
+    [5] = { LOADNIL = util.iABC },
+    [6] = { GETUPVAL = util.iABC },
+    [7] = { GETTABUP = util.iABC },
+    [8] = { GETTABLE = util.iABC },
+    [9] = { SETTABUP = util.iABC },
+    [10] = { SETUPVAL = util.iABC },
+    [11] = { SETTABLE = util.iABC },
+    [12] = { NEWTABLE = util.iABC },
+    [13] = { SELF = util.iABC },
+    [14] = { ADD = util.iABC },
+    [15] = { SUB = util.iABC },
+    [16] = { MUL = util.iABC },
+    [17] = { MOD = util.iABC },
+    [18] = { POW = util.iABC },
+    [19] = { DIV = util.iABC }, 
+    [20] = { IDIV = util.iABC },
+    [21] = { BAND = util.iABC },
+    [22] = { BOR = util.iABC },
+    [23] = { BXOR = util.iABC },
+    [24] = { SHL = util.iABC },
+    [25] = { SHR = util.iABC },
+    [26] = { UNM = util.iABC },
+    [27] = { BNOT = util.iABC },
+    [28] = { NOT = util.iABC },
+    [29] = { LEN = util.iABC },
+    [30] = { CONCAT = util.iABC },
+    [31] = { JMP = util.iAsBx },
+    [32] = { EQ = util.iABC },
+    [33] = { LT = util.iABC },
+    [34] = { LE = util.iABC },
+    [35] = { TEST = util.iABC },
+    [36] = { TESTSET = util.iABC },
+    [37] = { CALL = util.iABC },
+    [38] = { TAILCALL = util.iABC },
+    [39] = { RETURN = util.iABC },
+    [40] = { FORLOOP = util.iAsBx },
+    [41] = { FORPREP = util.iAsBx },
+    [42] = { TFORCALL = util.iABC },
+    [43] = { TFORLOOP = util.iAsBx },
+    [44] = { SETLIST = util.iABC },
+    [45] = { CLOSURE = util.iABx },
+    [46] = { VARARG = util.iABC },
+    [47] = { EXTRAARG = util.iAx },
 }
 
 ------------------------------------------------------------------
@@ -200,15 +165,15 @@ util.convert_to["int"] = function(x, size_int)
 	x = math.floor(x)
 	if x >= 0 then
 		for i = 1, size_int do
-		v = v..string.char(x % 256); x = math.floor(x / 256)
+			v = v..string.char(x % 256); x = math.floor(x / 256)
 		end
 	else-- x < 0
 		x = -x
 		local carry = 1
 		for i = 1, size_int do
-		local c = 255 - (x % 256) + carry
-		if c == 256 then c = 0; carry = 1 else carry = 0 end
-		v = v..string.char(c); x = math.floor(x / 256)
+			local c = 255 - (x % 256) + carry
+			if c == 256 then c = 0; carry = 1 else carry = 0 end
+			v = v..string.char(c); x = math.floor(x / 256)
 		end
 	end
 	return v

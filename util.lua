@@ -61,6 +61,31 @@ util.opcode = {
     [47] = { EXTRAARG = util.iAx },
 }
 
+function util.decode_instr(code)
+    local op_num = (code & 0x3f) -- 6bits for instruction id
+    if util.opcode[op_num+1] == nil then error("invalid bytecode") end
+    local k,v  = next(util.opcode[op_num+1])
+    if v == util.iABC then
+        local a, c, b = ((code>>6) & 0xff), ((code>>14) & 0x1ff), ((code>>23) & 0x1ff)
+        print(string.format("[%d]",op_num+1),k,a,b,c)
+        return {instr_name=k,instr_id=op_num+1,mode="iABC",operand={a=a,b=b,c=c}}
+    elseif v == util.iABx then
+        local a,bx = ((code>>6) & 0xff), ((code>>14) & 0x3ffff)
+        print(string.format("[%d]",op_num+1),k,a,bx)
+        return {instr_name=k,instr_id=op_num+1,mode="iABx",operand={a=a,bx=bx}}
+    elseif v == util.iAsBx then
+        local a,sbx = ((code>>6) & 0xff), ((code>>14) & 0x3ffff) - (((1<<18)-1)>>1)
+        print(string.format("[%d]",op_num+1),k,a,sbx)
+        return {instr_name=k,instr_id=op_num+1,mode="iAsBx",operand={a=a,sbx=sbx}}
+    elseif v == util.iAx then
+        local ax = (code>>6) & 0x3ffffff
+        print(string.format("[%d]",op_num+1),k,ax)
+        return {instr_name=k,instr_id=op_num+1,mode="iAx",operand={ax=ax}}
+    else
+        error("invalid opcode mode")
+    end
+end
+
 ------------------------------------------------------------------
 -- Code converter
 ------------------------------------------------------------------

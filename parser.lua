@@ -64,31 +64,6 @@
 require("util")
 parser = {}
 
-local function decode(code)
-    local op_num = (code & 0x3f) -- 6bits for instruction id
-    if util.opcode[op_num+1] == nil then error("invalid bytecode") end
-    local k,v  = next(util.opcode[op_num+1])
-    if v == util.iABC then
-        local a, c, b = ((code>>6) & 0xff), ((code>>14) & 0x1ff), ((code>>23) & 0x1ff)
-        print(string.format("[%d]",op_num+1),k,a,b,c)
-        return {instr_name=k,instr_id=op_num+1,mode="iABC",operand={a=a,b=b,c=c}}
-    elseif v == util.iABx then
-        local a,bx = ((code>>6) & 0xff), ((code>>14) & 0x3ffff)
-        print(string.format("[%d]",op_num+1),k,a,bx)
-        return {instr_name=k,instr_id=op_num+1,mode="iABx",operand={a=a,bx=bx}}
-    elseif v == util.iAsBx then
-        local a,sbx = ((code>>6) & 0xff), ((code>>14) & 0x3ffff) - (((1<<18)-1)>>1)
-        print(string.format("[%d]",op_num+1),k,a,sbx)
-        return {instr_name=k,instr_id=op_num+1,mode="iAsBx",operand={a=a,sbx=sbx}}
-    elseif v == util.iAx then
-        local ax = (code>>6) & 0x3ffffff
-        print(string.format("[%d]",op_num+1),k,ax)
-        return {instr_name=k,instr_id=op_num+1,mode="iAx",operand={ax=ax}}
-    else
-        error("invalid opcode mode")
-    end
-end
-
 function parser.parse_bytecode(chunk)
 	local idx = 1
 	local previdx, len
@@ -171,19 +146,27 @@ function parser.parse_bytecode(chunk)
 			},
 			line_defined=nil,
 			last_line_defined=nil,
+
 			num_params = nil,
 			is_vararg = nil,
 			max_stack = nil,
+			args = {},
+
 			code_size = nil,
 			code = {},
+
 			const_list_size = nil,
 			const ={},
+
 			upvalue_size = nil,
 			upvalue = {},
+
 			proto_size = nil,
 			proto = {},
+
 			line_size = nil,
 			line = {},
+
 			localvar_size = nil,
 			localvar = {},
 		}
@@ -307,16 +290,14 @@ function parser.parse_bytecode(chunk)
 		func.code_size = read_int()
 		for i = 1, func.code_size do
 			local val = read_buf(util.config.size_instruction)
-			assert(#val == 4 and type(val)=="string",
-			"expect 32 bits bytecode consumed")
+			assert(#val == 4 and type(val)=="string","expect 32 bits bytecode consumed")
 			val =  	(string.byte(val,1) << 0)  | 
 					(string.byte(val,2) << 8)  |
 					(string.byte(val,3) << 16) |
 					(string.byte(val,4) << 24)
-			assert(type(val)=="number")
-			func.code[i] = decode(val)			
+			assert(type(val)=="number","require number but got"..type(val))
+			func.code[i] = val			
 		end   
-		print("-------")
 		-- constant
 		func.const_list_size = read_int()
 		for i = 0, func.const_list_size-1 do

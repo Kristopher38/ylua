@@ -284,7 +284,7 @@ function parser.parse_bytecode(chunk)
 			elseif t == util.config.LUA_TNUMINT then
 				return read_integer()
 			elseif t == util.config.LUA_TSHRSTR or t == util.config.LUA_TLNGSTR then
-				return read_string53()
+				return read_string53().val
 			else
 				error("bad constant type "..t.." at "..previdx)
 			end
@@ -319,38 +319,38 @@ function parser.parse_bytecode(chunk)
 		print("-------")
 		-- constant
 		func.const_list_size = read_int()
-		for i = 1, func.const_list_size do
+		for i = 0, func.const_list_size-1 do
 			local t = read_byte()
-			func.const[i] = {type = t,val = get_const_val(t)}
+			func.const[i] = get_const_val(t)
 		end 
 
 		-- upvalue
 		func.upvalue_size = read_int()
-		for i = 1, func.upvalue_size do
+		for i = 0, func.upvalue_size-1 do
 			func.upvalue[i] = {instack = read_byte(), index = read_byte(),name53 =nil}
 		end
 
 		-- prototype
 		func.proto_size = read_int()
-		for i = 1, func.proto_size do
+		for i = 0, func.proto_size-1 do
 			func.proto[i] = read_function(func.source53.val, level + 1)
 		end
 
 		-- line
 		func.line_size = read_int()
-		for i=1,func.line_size do
+		for i=0, func.line_size-1 do
 			func.line[i] = read_int()
 		end
 
 		-- local 
 		func.size_localvar = read_int()
-		for i = 1, func.size_localvar do
+		for i = 0, func.size_localvar-1 do
 			func.localvar[i] = {varname=read_string53(),start_pc = read_int(), end_pc =read_int()}
 		end    
 
 		-- upvalue name
 		assert(read_int() == func.upvalue_size,"mismatch upvalue size and upvalue name size")
-		for i = 1, func.upvalue_size do
+		for i = 0, func.upvalue_size-1 do
 			func.upvalue[i].name53 = read_string53()
 		end
 

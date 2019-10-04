@@ -10,4 +10,9 @@ require("runtime")
 local file = io.open("test/test.luac","rb")
 local func = parser.parse_bytecode(file:read("*all"))
 file:close()
-runtime.exec_bytecode(func)
+upvalue = {
+    [0]={
+       print = print
+    }
+}
+runtime.exec_bytecode(func,upvalue)

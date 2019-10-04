@@ -214,7 +214,7 @@ util.config.FORMAT       = 0
 ------------------------------------------------------------------
 util.print_upvalue = function(func)
 	print("instack","index","name")
-	for i=1,func.upvalue_size do
+	for i=0,func.upvalue_size-1 do
 		print(func.upvalue[i].instack,func.upvalue[i].index,func.upvalue[i].name53.val)
 	end
 end

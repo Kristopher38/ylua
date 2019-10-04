@@ -83,7 +83,8 @@ function runtime.exec_bytecode(func)
         end,
         --NEWTABLE
         [12] = function(instr)
-            
+            r[arg_a(instr)] = {}
+            print(string.format("%s r[%d]={}",instr.instr_name,arg_a(instr)))
         end,
         --SELF
         [13] = function(instr)
@@ -192,6 +193,7 @@ function runtime.exec_bytecode(func)
     -- do execution
     const = func.const
     upvalue = func.upvalue
+    util.print_upvalue(func)
     while pc <= func.code_size do
         local instr = func.code[pc]
         dispatch[1]({instr_name="move",operand={a=2,b=2,c=2}})

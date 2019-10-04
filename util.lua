@@ -209,4 +209,14 @@ util.config.LUA_TLNGSTR  = util.config.LUA_TSTRING | (1 << 4)
 util.config.VERSION      = 83
 util.config.FORMAT       = 0 
 
+------------------------------------------------------------------
+-- Debug support
+------------------------------------------------------------------
+util.print_upvalue = function(func)
+	print("instack","index","name")
+	for i=1,func.upvalue_size do
+		print(func.upvalue[i].instack,func.upvalue[i].index,func.upvalue[i].name53.val)
+	end
+end
+
 return util

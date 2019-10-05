@@ -14,6 +14,7 @@ function runtime.exec_bytecode(func,upval)
     r ={}    
     const = {}
     func_stop = false
+    return_val = {}
 
     -- auxiliary functions(should factor to oop styles)
     local function arg_a(instr) return instr.operand.a end
@@ -200,7 +201,6 @@ function runtime.exec_bytecode(func,upval)
         end,
         -- LT
         [33] = function(instr)  
-            print(func.args)
             if (rk(arg_b(instr)) < rk(arg_c(instr))) ~= arg_a(instr) then
                 pc = pc + 1 
             else
@@ -243,7 +243,7 @@ function runtime.exec_bytecode(func,upval)
                 if nresult == 0 then
                     -- if nresult is 0, then multiple return results are saved
                     local ret = r[arg_a(instr)](table.unpack(r, param_start, param_end))
-                   print("rrrr",ret)
+                    print(ret)
                 elseif nresult == 1 then
                     -- if nresult is 1, no return results are saved
                     r[arg_a(instr)](table.unpack(r, param_start, param_end))
@@ -261,11 +261,10 @@ function runtime.exec_bytecode(func,upval)
             local ret_start = arg_a(instr)
             local ret_end = (arg_b(instr)==0) and (#r) or (arg_b(instr)+arg_a(instr)-2)
             assert(ret_start<=ret_start,"invalid return result range")
-            local return_val = {}
             for i=ret_start,ret_end do
                 table.insert(return_val,r[i])
             end
-            return return_val
+            flow_stop = true
         end,
         -- FORLOOP
         [40] = function(instr) end,
@@ -310,10 +309,12 @@ function runtime.exec_bytecode(func,upval)
         local instr = util.decode_instr(func.code[pc])
         dispatch[instr.instr_id](instr)
         if flow_stop then
-            return
+            return return_val
         end
         pc = pc + 1
     end
+
+    return nil
 end
 
 return runtime

@@ -1,4 +1,4 @@
-a = {1,2,2,3,4}
+a = {2,4,6,8,10}
 for i=1,#a do
     print("time",a[i])
 end

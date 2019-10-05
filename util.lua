@@ -22,6 +22,36 @@
 util = {}
 
 ---------------------------------------------------------------------------------
+-- Global configurations
+---------------------------------------------------------------------------------
+util.config = {
+	endianness = 1, 
+	size_int = 4,         
+	size_size_t = 8,
+	size_instruction = 4,
+	size_lua_Integer = 8,
+	integer_type = "long long",
+	size_lua_Number = 8,     
+	integral = 0,             
+	number_type = "double", 
+	debug = false,  
+}
+
+util.config.SIGNATURE    = "\27Lua"
+util.config.LUAC_DATA    = "\25\147\r\n\26\n" 
+util.config.LUA_TNIL     = 0
+util.config.LUA_TBOOLEAN = 1
+util.config.LUA_TNUMBER  = 3
+util.config.LUA_TNUMFLT  = util.config.LUA_TNUMBER | (0 << 4)
+util.config.LUA_TNUMINT  = util.config.LUA_TNUMBER | (1 << 4)
+util.config.LUA_TSTRING  = 4
+util.config.LUA_TSHRSTR  = util.config.LUA_TSTRING | (0 << 4)
+util.config.LUA_TLNGSTR  = util.config.LUA_TSTRING | (1 << 4)
+util.config.VERSION      = 83
+util.config.FORMAT       = 0 
+util.config.FPF          = 50
+
+---------------------------------------------------------------------------------
 -- Opcode table and corresponding operations
 ---------------------------------------------------------------------------------
 util.iABC, util.iABx, util.iAsBx, util.iAx = 0, 1, 2, 3
@@ -80,21 +110,29 @@ function util.decode_instr(code)
     if util.opcode[op_num+1] == nil then error("invalid bytecode") end
     local k,v  = next(util.opcode[op_num+1])
     if v == util.iABC then
-        local a, c, b = ((code>>6) & 0xff), ((code>>14) & 0x1ff), ((code>>23) & 0x1ff)
-        print(string.format("[%d]",op_num+1),k,a,b,c)
+		local a, c, b = ((code>>6) & 0xff), ((code>>14) & 0x1ff), ((code>>23) & 0x1ff)
+		if util.config.debug == true then 
+			print(string.format("[%d]",op_num+1),k,a,b,c)		
+		end
         return {instr_name=k,instr_id=op_num+1,mode="iABC",operand={a=a,b=b,c=c}}
     elseif v == util.iABx then
         local a,bx = ((code>>6) & 0xff), ((code>>14) & 0x3ffff)
-        print(string.format("[%d]",op_num+1),k,a,bx)
-        return {instr_name=k,instr_id=op_num+1,mode="iABx",operand={a=a,bx=bx}}
+		if util.config.debug == true then 
+			print(string.format("[%d]",op_num+1),k,a,bx)
+		end
+		return {instr_name=k,instr_id=op_num+1,mode="iABx",operand={a=a,bx=bx}}
     elseif v == util.iAsBx then
         local a,sbx = ((code>>6) & 0xff), ((code>>14) & 0x3ffff) - (((1<<18)-1)>>1)
-        print(string.format("[%d]",op_num+1),k,a,sbx)
-        return {instr_name=k,instr_id=op_num+1,mode="iAsBx",operand={a=a,sbx=sbx}}
+		if util.config.debug == true then 
+			print(string.format("[%d]",op_num+1),k,a,sbx)
+		end
+		return {instr_name=k,instr_id=op_num+1,mode="iAsBx",operand={a=a,sbx=sbx}}
     elseif v == util.iAx then
         local ax = (code>>6) & 0x3ffffff
-        print(string.format("[%d]",op_num+1),k,ax)
-        return {instr_name=k,instr_id=op_num+1,mode="iAx",operand={ax=ax}}
+		if util.config.debug == true then 
+			print(string.format("[%d]",op_num+1),k,ax)
+		end
+		return {instr_name=k,instr_id=op_num+1,mode="iAx",operand={ax=ax}}
     else
         error("invalid opcode mode")
     end
@@ -221,44 +259,19 @@ end
 util.convert_to["long long"] = util.convert_to["int"]
 
 ---------------------------------------------------------------------------------
--- Global configurations
----------------------------------------------------------------------------------
-util.config = {
-	endianness = 1, 
-	size_int = 4,         
-	size_size_t = 8,
-	size_instruction = 4,
-	size_lua_Integer = 8,
-	integer_type = "long long",
-	size_lua_Number = 8,     
-	integral = 0,             
-	number_type = "double",   
-}
-
-util.config.SIGNATURE    = "\27Lua"
-util.config.LUAC_DATA    = "\25\147\r\n\26\n" 
-util.config.LUA_TNIL     = 0
-util.config.LUA_TBOOLEAN = 1
-util.config.LUA_TNUMBER  = 3
-util.config.LUA_TNUMFLT  = util.config.LUA_TNUMBER | (0 << 4)
-util.config.LUA_TNUMINT  = util.config.LUA_TNUMBER | (1 << 4)
-util.config.LUA_TSTRING  = 4
-util.config.LUA_TSHRSTR  = util.config.LUA_TSTRING | (0 << 4)
-util.config.LUA_TLNGSTR  = util.config.LUA_TSTRING | (1 << 4)
-util.config.VERSION      = 83
-util.config.FORMAT       = 0 
-util.config.FPF          = 50
-
----------------------------------------------------------------------------------
 -- Debug support
 ---------------------------------------------------------------------------------
 util.print_upvalue = function(func)
+	if util.config.debug == false then return end
+
 	print("instack","index","name")
 	for i=0,func.upvalue_size-1 do
 		print(func.upvalue[i].instack,func.upvalue[i].index,func.upvalue[i].name53.val)
 	end
 end
 util.print_const = function(func)
+	if util.config.debug == false then return end
+
 	print("const")
 	for i=0,func.const_list_size-1 do
 		print(func.const[i])

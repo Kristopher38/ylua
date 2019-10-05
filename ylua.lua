@@ -21,18 +21,29 @@
 ---------------------------------------------------------------------------------
 require("parser")
 require("runtime")
-if type(arg[1])~="string" then
-    error("unexpect input")
+require("util")
+
+local filename = nil
+for i=1,#arg do
+    if string.match(arg[i],"-+") ~= nil then
+        if arg[i] == "--debug" or arg[i] == "-d" then
+            util.config.debug = true
+        end
+    else
+        filename = arg[i]
+    end
 end
-local file = io.open(arg[1],"rb")
+
+local file = io.open(filename,"rb")
 if file==nil then
     error("can not open file "..arg[1])
 end
 local func = parser.parse_bytecode(file:read("*all"))
 file:close()
-upvalue = {
+local env = {
     [0]={   
-       print = print
+       print = print,
+       assert = assert
     }
 }
-runtime.exec_bytecode(func,upvalue)
+runtime.exec_bytecode(func,env)

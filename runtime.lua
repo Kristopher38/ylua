@@ -93,8 +93,9 @@ function runtime.exec_bytecode(func,upvalue)
             upvalue[arg_b(instr)] = r[arg_a(instr)]
         end,
         --SETTABLE
-        [11] = function(instr) error("not implemented yet") end,
-
+        [11] = function(instr)
+            r[arg_a(instr)][rk(arg_b(instr))] = rk(arg_c(instr))
+        end,
         --NEWTABLE
         [12] = function(instr)
             r[arg_a(instr)] = {}
@@ -176,7 +177,7 @@ function runtime.exec_bytecode(func,upvalue)
         [31] = function(instr) error("not implemented yet") end,
         -- EQ
         [32] = function(instr)
-            if (rb(arg_b(instr)) == rb(arg_c(instr))) ~= arg_a(instr) then
+            if (rk(arg_b(instr)) == rk(arg_c(instr))) ~= arg_a(instr) then
                 pc = pc + 1 
             else
                 pc = pc + 1 + sbx(func.code[pc])
@@ -206,19 +207,21 @@ function runtime.exec_bytecode(func,upvalue)
         [37] = function(instr) 
             local nparam = arg_b(instr)
             local nresult = arg_c(instr)
-            local param = nil
+            local param = {}
             if nparam ~= 1 then
                  -- there are (B-1) parameters
                 local param_start = arg_a(instr) + 1
                 local param_end = (arg_b(instr) == 0) and #r or (arg_a(instr) + arg_b(instr) - 1)
                 assert(param_start<=param_end,"invalid parameter range")
                 assert(r[arg_a(instr)] ~= nil,"callee should not be null")
-                param = table.unpack(r, param_start, param_end)
+                for i=param_start,param_end do
+                    table.insert(param,r[i])
+                end            
             end
 
             if nresult == 0 then
                 -- if nresult is 0, then multiple return results are saved
-                local ret = r[arg_a(instr)](param)
+                local ret = r[arg_a(instr)](table.unpack(param))
                 for i=arg_a(instr),arg_a(instr)+#ret - 1 do
                     r[i] = ret[i-arg_a(instr)+1]
                 end
@@ -227,10 +230,10 @@ function runtime.exec_bytecode(func,upvalue)
                 end
             elseif nresult == 1 then
                 -- if nresult is 1, no return results are saved
-                r[arg_a(instr)](param)
+                r[arg_a(instr)](table.unpack(param))
             else
                 -- if nresult is 2 or more, return values are saved
-                local result = r[arg_a(instr)](param)
+                local result = r[arg_a(instr)](table.unpack(param))
                 r[arg_a(instr)] = result[1]
             end
         end,

@@ -258,5 +258,11 @@ util.print_upvalue = function(func)
 		print(func.upvalue[i].instack,func.upvalue[i].index,func.upvalue[i].name53.val)
 	end
 end
+util.print_const = function(func)
+	print("const")
+	for i=0,func.const_list_size-1 do
+		print(func.const[i])
+	end
+end
 
 return util

@@ -22,7 +22,7 @@
 require("util")
 runtime={}
 
-function runtime.exec_bytecode(func,upval)
+function runtime.exec_bytecode(func,upvalue)
     -- execution environmnet
     local pc = 1
     local r ={}
@@ -69,11 +69,13 @@ function runtime.exec_bytecode(func,upval)
         end,
         --GETUPVAL
         [6] = function(instr)
-            
+            local v = upvalue[arg_b(instr)]
+            r[arg_a(instr)] =  v
         end,
         --GETTABUP
         [7] = function(instr)
-            r[arg_a(instr)] = upvalue[arg_b(instr)][rk(arg_c(instr))]
+            local v = upvalue[arg_b(instr)][rk(arg_c(instr))]
+            r[arg_a(instr)] = v
         end,
         --GETTABLE
         [8] = function(instr)
@@ -88,20 +90,17 @@ function runtime.exec_bytecode(func,upval)
         end,
         --SETUPVAL
         [10] = function(instr)
-            
+            upvalue[arg_b(instr)] = r[arg_a(instr)]
         end,
         --SETTABLE
-        [11] = function(instr)
-            
-        end,
+        [11] = function(instr) error("not implemented yet") end,
+
         --NEWTABLE
         [12] = function(instr)
             r[arg_a(instr)] = {}
         end,
         --SELF
-        [13] = function(instr)
-            
-        end,
+        [13] = function(instr) error("not implemented yet") end,
         --ADD
         [14] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) + rk(arg_c(instr))
@@ -174,9 +173,7 @@ function runtime.exec_bytecode(func,upval)
             end
         end,
         -- JMP
-        [31] = function(instr) 
-        
-        end,
+        [31] = function(instr) error("not implemented yet") end,
         -- EQ
         [32] = function(instr)
             if (rb(arg_b(instr)) == rb(arg_c(instr))) ~= arg_a(instr) then
@@ -202,23 +199,21 @@ function runtime.exec_bytecode(func,upval)
             end
         end,
         -- TEST
-        [35] = function(instr) end,
+        [35] = function(instr) error("not implemented yet") end,
         -- TESTSET
-        [36] = function(instr) end,
+        [36] = function(instr) error("not implemented yet") end,
         -- CALL
         [37] = function(instr) 
             local nparam = arg_b(instr)
             local nresult = arg_c(instr)
+             -- the function has no parameter
             if nparam == 1 then
-                -- the function has no parameter
-                if arg_c(instr) == 1 then
+                if nresult == 0 then
                     r[arg_a(instr)]()
-                elseif arg_c(instr) == 2 then
-                    local return_val = {r[arg_a(instr)]()}
-                    -- update stack values
-                    for i=arg_a(instr),arg_a(instr)+#return_val do
-                        r[i]  = return_val[i-arg_a(instr)]
-                    end
+                elseif nresult == 1 then
+                else
+                    local result = r[arg_a(instr)]()
+                    r[arg_a(instr)] = result[1]
                 end
             else 
                 -- there are (B-1) parameters
@@ -240,13 +235,13 @@ function runtime.exec_bytecode(func,upval)
                     r[arg_a(instr)](table.unpack(r, param_start, param_end))
                 else
                     -- if nresult is 2 or more, return values are saved
-                    r[arg_a(instr)] = r[arg_a(instr)](table.unpack(r, param_start, param_end))
+                    local result = r[arg_a(instr)](table.unpack(r, param_start, param_end))
+                    r[arg_a(instr)] = result[1]
                 end 
-
             end
         end,
         -- TAILCALL
-        [38] = function(instr) end,
+        [38] = function(instr) error("not implemented yet") end,
         -- RETURN
         [39] = function(instr) 
             local ret_start = arg_a(instr)
@@ -274,9 +269,9 @@ function runtime.exec_bytecode(func,upval)
             pc = pc + sbx(func.code[pc])
         end,
         -- TFORCALL
-        [42] = function(instr) end,
+        [42] = function(instr) error("not implemented yet") end,
         -- TFORLOOP
-        [43] = function(instr) end,
+        [43] = function(instr) error("not implemented yet") end,
         -- SETLIST
         [44] = function(instr) 
             local nelement = arg_b(instr)
@@ -297,20 +292,33 @@ function runtime.exec_bytecode(func,upval)
         -- CLOSURE
         [45] = function(instr) 
             local proto = func.proto[arg_bx(instr)]
-            local upvalue = {
-                [0]={
-                    print = print
-                }
-            }
+            local newupvalue = setmetatable({
+                [0]=upvalue[0]
+            },{
+                __index = function(o,i)
+                    if func.upvalue[i-1].instack == 0 then
+                        return r[func.upvalue[i-1].index]
+                    else
+                        return upvalue[func.upvalue[i-1].index]
+                    end
+                end,
+                __newindex = function(o,i,v)
+                    if func.upvalue[i-1].instack == 0 then
+                        r[func.upvalue[i-1].index] = v
+                    else
+                        upvalue[func.upvalue[i-1].index] = v
+                    end
+                end
+            })
             r[arg_a(instr)] = function(...)
                 proto.args = table.pack(...)
-                return runtime.exec_bytecode(proto, upvalue)
+                return runtime.exec_bytecode(proto, newupvalue)
             end
         end,
         -- VARARG
-        [46] = function(instr) end,
+        [46] = function(instr) error("not implemented yet") end,
         -- EXTRAARG
-        [47] = function(instr) end,
+        [47] = function(instr) error("not implemented yet") end,
     }
 
     -- setup environment

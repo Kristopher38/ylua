@@ -206,38 +206,32 @@ function runtime.exec_bytecode(func,upvalue)
         [37] = function(instr) 
             local nparam = arg_b(instr)
             local nresult = arg_c(instr)
-             -- the function has no parameter
-            if nparam == 1 then
-                if nresult == 0 then
-                    r[arg_a(instr)]()
-                elseif nresult == 1 then
-                else
-                    local result = r[arg_a(instr)]()
-                    r[arg_a(instr)] = result[1]
-                end
-            else 
-                -- there are (B-1) parameters
+            local param = nil
+            if nparam ~= 1 then
+                 -- there are (B-1) parameters
                 local param_start = arg_a(instr) + 1
                 local param_end = (arg_b(instr) == 0) and #r or (arg_a(instr) + arg_b(instr) - 1)
                 assert(param_start<=param_end,"invalid parameter range")
                 assert(r[arg_a(instr)] ~= nil,"callee should not be null")
-                if nresult == 0 then
-                    -- if nresult is 0, then multiple return results are saved
-                    local ret = r[arg_a(instr)](table.unpack(r, param_start, param_end))
-                    for i=arg_a(instr),arg_a(instr)+#ret - 1 do
-                        r[i] = ret[i-arg_a(instr)+1]
-                    end
-                    for i=arg_a(instr)+#ret,#r do
-                        r[i] = nil
-                    end
-                elseif nresult == 1 then
-                    -- if nresult is 1, no return results are saved
-                    r[arg_a(instr)](table.unpack(r, param_start, param_end))
-                else
-                    -- if nresult is 2 or more, return values are saved
-                    local result = r[arg_a(instr)](table.unpack(r, param_start, param_end))
-                    r[arg_a(instr)] = result[1]
-                end 
+                param = table.unpack(r, param_start, param_end)
+            end
+
+            if nresult == 0 then
+                -- if nresult is 0, then multiple return results are saved
+                local ret = r[arg_a(instr)](param)
+                for i=arg_a(instr),arg_a(instr)+#ret - 1 do
+                    r[i] = ret[i-arg_a(instr)+1]
+                end
+                for i=arg_a(instr)+#ret,#r do
+                    r[i] = nil
+                end
+            elseif nresult == 1 then
+                -- if nresult is 1, no return results are saved
+                r[arg_a(instr)](param)
+            else
+                -- if nresult is 2 or more, return values are saved
+                local result = r[arg_a(instr)](param)
+                r[arg_a(instr)] = result[1]
             end
         end,
         -- TAILCALL

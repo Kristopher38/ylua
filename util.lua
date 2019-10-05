@@ -1,15 +1,29 @@
-------------------------------------------------------------------
--- YLua: A Lua metacircular virtual machine written in lua
--- 
--- NOTE that bytecode parser was derived from ChunkSpy5.3 
---
--- kelthuzadx<1948638989@qq.com>  Copyright (c) 2019 kelthuyang
-------------------------------------------------------------------
+---------------------------------------------------------------------------------
+-- Copyright (c) 2019 kelthuzadx<1948638989@qq.com>
+
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+---------------------------------------------------------------------------------
 util = {}
 
-------------------------------------------------------------------
--- Opcode table
-------------------------------------------------------------------
+---------------------------------------------------------------------------------
+-- Opcode table and corresponding operations
+---------------------------------------------------------------------------------
 util.iABC, util.iABx, util.iAsBx, util.iAx = 0, 1, 2, 3
 util.opcode = { 
     [1] = { MOVE = util.iABC },
@@ -86,9 +100,9 @@ function util.decode_instr(code)
     end
 end
 
-------------------------------------------------------------------
--- Code converter
-------------------------------------------------------------------
+---------------------------------------------------------------------------------
+-- Type converter
+---------------------------------------------------------------------------------
 util.convert_from = {} 
 util.convert_to = {}
 
@@ -206,9 +220,9 @@ end
 
 util.convert_to["long long"] = util.convert_to["int"]
 
-------------------------------------------------------------------
+---------------------------------------------------------------------------------
 -- Global configurations
-------------------------------------------------------------------
+---------------------------------------------------------------------------------
 util.config = {
 	endianness = 1, 
 	size_int = 4,         
@@ -234,9 +248,9 @@ util.config.LUA_TLNGSTR  = util.config.LUA_TSTRING | (1 << 4)
 util.config.VERSION      = 83
 util.config.FORMAT       = 0 
 
-------------------------------------------------------------------
+---------------------------------------------------------------------------------
 -- Debug support
-------------------------------------------------------------------
+---------------------------------------------------------------------------------
 util.print_upvalue = function(func)
 	print("instack","index","name")
 	for i=0,func.upvalue_size-1 do

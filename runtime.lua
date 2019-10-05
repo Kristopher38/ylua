@@ -1,20 +1,34 @@
-------------------------------------------------------------------
--- YLua: A Lua metacircular virtual machine written in lua
--- 
--- NOTE that bytecode parser was derived from ChunkSpy5.3 
---
--- kelthuzadx<1948638989@qq.com>  Copyright (c) 2019 kelthuyang
-------------------------------------------------------------------
+---------------------------------------------------------------------------------
+-- Copyright (c) 2019 kelthuzadx<1948638989@qq.com>
+
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+---------------------------------------------------------------------------------
 require("util")
 runtime={}
 
 function runtime.exec_bytecode(func,upval)
     -- execution environmnet
-    pc = 1
-    r ={}    
-    const = {}
-    func_stop = false
-    return_val = {}
+    local pc = 1
+    local r ={}
+    local const = {}
+    local flow_stop = false
+    local return_val = {}
 
     -- auxiliary functions(should factor to oop styles)
     local function arg_a(instr) return instr.operand.a end
@@ -26,11 +40,10 @@ function runtime.exec_bytecode(func,upval)
     local function rk(index) if index>=256 then return const[index-256] else return r[index] end end
     local function sbx(code) return ((code>>14) & 0x3ffff) - (((1<<18)-1)>>1) end
     -- bytecode dispatch table
-    dispatch = {
+    local dispatch = {
         -- MOVE 
         [1] = function(instr) 
             r[arg_a(instr)] = r[arg_b(instr)]
-            print(string.format("%s r[%d]=%d",instr.instr_name,arg_a(instr),arg_b(instr)))
         end,
         -- LOADK
         [2] = function(instr)
@@ -40,16 +53,12 @@ function runtime.exec_bytecode(func,upval)
         [3] = function(intsr)
             r[arg_a(instr)] = const[arg_bx(instr)]
             pc = pc + 1
-            print(string.format("%s r[%d]=%d",instr.instr_name,arg_a(instr),arg_bx(xinstr)))
         end,
         -- LOADBOOL
         [4] = function(instr)
             r[arg_a(instr)] = (arg_b(instr)~=0) 
             if arg_c(instr) ~= 0 then
                 pc = pc+1
-                print(string.format("%s r[%d]=%d skip=1",instr.instr_name,arg_a(instr),arg_b(xinstr)))
-            else
-                print(string.format("%s r[%d]=%d",instr.instr_name,arg_a(instr),arg_b(xinstr)))    
             end
         end,
         -- LOADNIL
@@ -57,7 +66,6 @@ function runtime.exec_bytecode(func,upval)
             for i=arg_a(instr),arg_b(instr) do
                 r[i] = nil
             end
-            print(string.format("%s r[%d],..,r[%d] = nil",instr.instr_name,arg_a(instr),arg_b(xinstr)))
         end,
         --GETUPVAL
         [6] = function(instr)
@@ -65,11 +73,7 @@ function runtime.exec_bytecode(func,upval)
         end,
         --GETTABUP
         [7] = function(instr)
-            local c = rk(arg_c(instr))
-            local b = arg_b(instr)
-            local a = arg_a(instr)
-            r[a] = upvalue[b][c]
-            --r[arg_a(instr)] = upvalue[rk(arg_b(instr))][rk(arg_c(instr))]
+            r[arg_a(instr)] = upvalue[arg_b(instr)][rk(arg_c(instr))]
         end,
         --GETTABLE
         [8] = function(instr)
@@ -80,7 +84,7 @@ function runtime.exec_bytecode(func,upval)
             local c = rk(arg_c(instr))
             local b = rk(arg_b(instr))
             local a = arg_a(instr)
-            upvalue[a][b]  = c
+            upvalue[arg_a(instr)][rk(arg_b(instr))]  = rk(arg_c(instr))
         end,
         --SETUPVAL
         [10] = function(instr)
@@ -93,7 +97,6 @@ function runtime.exec_bytecode(func,upval)
         --NEWTABLE
         [12] = function(instr)
             r[arg_a(instr)] = {}
-            print(string.format("%s r[%d]={}",instr.instr_name,arg_a(instr)))
         end,
         --SELF
         [13] = function(instr)
@@ -102,82 +105,66 @@ function runtime.exec_bytecode(func,upval)
         --ADD
         [14] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) + rk(arg_c(instr))
-            print(string.format("%s r[%d]= %d + %d",instr.instr_name,arg_a(instr),rk(arg_b(instr)),rk(arg_c(instr))))
         end,
         --SUB
         [15] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) - rk(arg_c(instr))
-            print(string.format("%s r[%d]= %d - %d",instr.instr_name,arg_a(instr),rk(arg_b(instr)),rk(arg_c(instr))))
         end,
         --MUL
         [16] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) * rk(arg_c(instr))
-            print(string.format("%s r[%d]= %d * %d",instr.instr_name,arg_a(instr),rk(arg_b(instr)),rk(arg_c(instr))))
         end,
         --MOD
         [17] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) % rk(arg_c(instr))
-            print(string.format("%s r[%d]= %d % %d",instr.instr_name,arg_a(instr),rk(arg_b(instr)),rk(arg_c(instr))))
         end,
         --POW
         [18] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) ^ rk(arg_c(instr))
-            print(string.format("%s r[%d]= %d ^ %d",instr.instr_name,arg_a(instr),rk(arg_b(instr)),rk(arg_c(instr))))
         end,
         --DIV
         [19] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) / rk(arg_c(instr))
-            print(string.format("%s r[%d]= %d ^ %d",instr.instr_name,arg_a(instr),rk(arg_b(instr)),rk(arg_c(instr))))
         end,
         --IDIV
         [20] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) // rk(arg_c(instr))
-            print(string.format("%s r[%d]= %d ^ %d",instr.instr_name,arg_a(instr),rk(arg_b(instr)),rk(arg_c(instr))))
         end,
         --BAND
         [21] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) & rk(arg_c(instr))
-            print(string.format("%s r[%d]= %d & %d",instr.instr_name,arg_a(instr),rk(arg_b(instr)),rk(arg_c(instr))))
         end,
         --BOR
         [22] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) | rk(arg_c(instr))
-            print(string.format("%s r[%d]= %d | %d",instr.instr_name,arg_a(instr),rk(arg_b(instr)),rk(arg_c(instr))))
         end,
         --BXOR
         [23] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) ~ rk(arg_c(instr))
-            print(string.format("%s r[%d]= %d ~ %d",instr.instr_name,arg_a(instr),rk(arg_b(instr)),rk(arg_c(instr))))
         end,
         --SHL
         [24] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) << rk(arg_c(instr))
-            print(string.format("%s r[%d]= %d << %d",instr.instr_name,arg_a(instr),rk(arg_b(instr)),rk(arg_c(instr))))
         end,
         --SHR
         [25] = function(instr)
             r[arg_a(instr)] = rk(arg_b(instr)) >> rk(arg_c(instr))
-            print(string.format("%s r[%d]= %d >> %d",instr.instr_name,arg_a(instr),rk(arg_b(instr)),rk(arg_c(instr))))
         end,
         --UNM
         [26] = function(instr)
             r[arg_a(instr)] = -r[arg_b(instr)]
-            print(string.format("%s r[%d]= %d",instr.instr_name,arg_a(instr),-r[arg_b(instr)]))
         end,
         --BNOT
         [27] = function(instr)
             r[arg_a(instr)] = ~r[arg_b(instr)]
-            print(string.format("%s r[%d]= %d",instr.instr_name,arg_a(instr),~r[arg_b(instr)]))
         end,
         --NOT
         [28] = function(instr)
             r[arg_a(instr)] = not r[arg_b(instr)]
-            print(string.format("%s r[%d]= %d",instr.instr_name,arg_a(instr),not r[arg_b(instr)]))
         end,
         -- LEN
         [29] = function(instr) 
             r[arg_a(instr)] = #r[arg_b(instr)]
-            print(string.format("%s r[%d]= %d",instr.instr_name,arg_a(instr),#r[arg_b(instr)]))
         end,
         -- CONCAT
         [30] = function(instr) 
@@ -185,7 +172,6 @@ function runtime.exec_bytecode(func,upval)
             for i=arg_b(instr),arg_c(instr) do
                 res = res..r[i]
             end
-            print(string.format("%s r[%d]= %s",instr.instr_name,arg_a(instr),res))
         end,
         -- JMP
         [31] = function(instr) 
@@ -243,7 +229,12 @@ function runtime.exec_bytecode(func,upval)
                 if nresult == 0 then
                     -- if nresult is 0, then multiple return results are saved
                     local ret = r[arg_a(instr)](table.unpack(r, param_start, param_end))
-                    print(ret)
+                    for i=arg_a(instr),arg_a(instr)+#ret - 1 do
+                        r[i] = ret[i-arg_a(instr)+1]
+                    end
+                    for i=arg_a(instr)+#ret,#r do
+                        r[i] = nil
+                    end
                 elseif nresult == 1 then
                     -- if nresult is 1, no return results are saved
                     r[arg_a(instr)](table.unpack(r, param_start, param_end))

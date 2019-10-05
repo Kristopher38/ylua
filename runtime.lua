@@ -77,7 +77,7 @@ function runtime.exec_bytecode(func,upval)
         end,
         --GETTABLE
         [8] = function(instr)
-          
+          r[arg_a(instr)] = r[arg_b(instr)][rk(arg_c(instr))]
         end,
         --SETTABUP
         [9] = function(instr)
@@ -258,15 +258,42 @@ function runtime.exec_bytecode(func,upval)
             flow_stop = true
         end,
         -- FORLOOP
-        [40] = function(instr) end,
+        [40] = function(instr) 
+            local step = r[arg_a(instr)+2]
+            local idx = r[arg_a(instr)] + step
+            local limit = r[arg_a(instr)+1]
+            if (0<step and idx<=limit ) or (step<0 and limit<=idx) then
+                pc = pc +sbx(func.code[pc])
+                r[arg_a(instr)] = idx
+                r[arg_a(instr)+3] = idx
+            end
+        end,
         -- FORPREP
-        [41] = function(instr) end,
+        [41] = function(instr) 
+            r[arg_a(instr)] = r[arg_a(instr)] - r[arg_a(instr)+2]
+            pc = pc + sbx(func.code[pc])
+        end,
         -- TFORCALL
         [42] = function(instr) end,
         -- TFORLOOP
         [43] = function(instr) end,
         -- SETLIST
-        [44] = function(instr) end,
+        [44] = function(instr) 
+            local nelement = arg_b(instr)
+            local c = arg_c(instr)
+            if c==0 then
+                c = code[pc+1]
+            end
+            if nelement == 0 then
+                for i=1,#r-arg_a(instr) do
+                    r[arg_a(instr)][(c-1)*util.config.FPF+i] = r[arg_a(instr)+i]
+                end
+            else
+                for i=1,nelement do
+                    r[arg_a(instr)][(c-1)*util.config.FPF+i] = r[arg_a(instr)+i]
+                end
+            end
+        end,
         -- CLOSURE
         [45] = function(instr) 
             local proto = func.proto[arg_bx(instr)]

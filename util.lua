@@ -247,6 +247,7 @@ util.config.LUA_TSHRSTR  = util.config.LUA_TSTRING | (0 << 4)
 util.config.LUA_TLNGSTR  = util.config.LUA_TSTRING | (1 << 4)
 util.config.VERSION      = 83
 util.config.FORMAT       = 0 
+util.config.FPF          = 50
 
 ---------------------------------------------------------------------------------
 -- Debug support

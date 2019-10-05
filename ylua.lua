@@ -21,16 +21,13 @@
 ---------------------------------------------------------------------------------
 require("parser")
 require("runtime")
-
 if type(arg[1])~="string" then
-    error("expect a file name as YLua's input")
+    error("unexpect input")
 end
-
 local file = io.open(arg[1],"rb")
-if file == nil then
-    error("incorrect file path/name, try again")
+if file==nil then
+    error("can not open file "..arg[1])
 end
-
 local func = parser.parse_bytecode(file:read("*all"))
 file:close()
 upvalue = {

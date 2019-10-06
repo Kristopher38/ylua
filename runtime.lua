@@ -174,28 +174,24 @@ function runtime.exec_bytecode(func,upvalue)
             end
         end,
         -- JMP
-        [31] = function(instr) error("not implemented yet") end,
+        [31] = function(instr)
+            pc = pc + arg_sbx(instr)
+        end,
         -- EQ
         [32] = function(instr)
-            if (rk(arg_b(instr)) == rk(arg_c(instr))) ~= arg_a(instr) then
+            if (rk(arg_b(instr)) == rk(arg_c(instr))) ~= (arg_a(instr)~=0) then
                 pc = pc + 1 
-            else
-                pc = pc + 1 + sbx(func.code[pc])
             end
         end,
         -- LT
         [33] = function(instr)  
-            if (rk(arg_b(instr)) < rk(arg_c(instr))) ~= arg_a(instr) then
+            if (rk(arg_b(instr)) < rk(arg_c(instr))) ~= (arg_a(instr)~=0) then
                 pc = pc + 1 
-            else
-                pc = pc + 1+ sbx(func.code[pc])
             end
         end,
         -- LE
         [34] = function(instr) 
-            if (rb(arg_b(instr)) <= rk(arg_c(instr))) ~= arg_a(instr) then
-                pc = pc + 1 + sbx(func.code[pc])
-            else
+            if (rb(arg_b(instr)) <= rk(arg_c(instr))) ~= (arg_a(instr)~=0) then
                 pc = pc + 1
             end
         end,

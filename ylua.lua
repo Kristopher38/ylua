@@ -41,9 +41,6 @@ end
 local func = parser.parse_bytecode(file:read("*all"))
 file:close()
 local env = {
-    [0]={   
-       print = print,
-       assert = assert
-    }
+    [0]= _ENV
 }
 runtime.exec_bytecode(func,env)

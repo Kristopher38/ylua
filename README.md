@@ -14,6 +14,8 @@ $ ./runtest
 Please feel free to issue any bugs or pull request to add new features.
 
 # Reference
+[0] https://github.com/dibyendumajumdar/ravi/blob/master/readthedocs/lua_bytecode_reference.rst
+
 [1] http://luaforge.net/docman/83/98/ANoFrillsIntroToLua51VMInstructions.pdf
 
 [2] http://files.catwell.info/misc/mirror/lua-5.2-bytecode-vm-dirk-laurie/lua52vm.html

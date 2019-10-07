@@ -1,20 +1,20 @@
 # YLua VM 
-**YLua VM** is yet another a metacircular [Lua VM](https://codeload.github.com/lua/lua/tar.gz/v5.3.0), it was written in Lua, and do not a lua compiler, you still need compile lua source code by a bootstrap [`lua`](https://www.lua.org/download.html) tool.
+**YLua VM** is yet another a metacircular [Lua VM](https://codeload.github.com/lua/lua/tar.gz/v5.3.0), it was written in Lua, you still need compile lua source code by a bootstrap [`lua`](https://www.lua.org/download.html).
 
 # Getting started
-You can simply launch it by a bootstrap `lua`  and pass a file name as it's input
+You can simply launch it by a bootstrap `lua`  and feed a binary bytecode file into it:
 ```bash
-$ lua ylua.lua <filename>
-$ lua ylua.lua <filename> --deubug
-```
-And you can run unit test to make sure YLua work well
-```
+# Enjoy it! 
+$ lua ylua.lua <bytecode_file>
+# Trace bytecode execution flow with --debug option
+$ lua ylua.lua <bytecode_file> --deubug
+# Run unit test to make sure it works well
 $ ./runtest
 ```
 Please feel free to issue any bugs or pull request to add new features.
 
 # Reference
-[0] https://github.com/dibyendumajumdar/ravi/blob/master/readthedocs/lua_bytecode_reference.rst
+[0] **Primary** https://github.com/dibyendumajumdar/ravi/blob/master/readthedocs/lua_bytecode_reference.rst
 
 [1] http://luaforge.net/docman/83/98/ANoFrillsIntroToLua51VMInstructions.pdf
 

@@ -196,9 +196,19 @@ function runtime.exec_bytecode(func,upvalue)
             end
         end,
         -- TEST
-        [35] = function(instr) error("not implemented yet") end,
+        [35] = function(instr)
+            if not (r[a(instr)]~= c(instr)) then
+                pc = pc + 1
+            end
+        end,
         -- TESTSET
-        [36] = function(instr) error("not implemented yet") end,
+        [36] = function(instr)
+            if r[b(instr)] ~= c(instr) then
+                r[a(instr)] = r[b(instr)]
+            else
+                pc = pc +1
+            end
+        end,
         -- CALL
         [37] = function(instr) 
             local nparam = b(instr)

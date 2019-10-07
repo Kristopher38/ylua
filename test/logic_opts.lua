@@ -9,5 +9,5 @@ assert(d == false)
 d = a and b
 assert(d==1)
 d = a or b
-assert(d==)
+assert(d==2)
 print(a,b,d)

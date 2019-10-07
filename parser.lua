@@ -19,65 +19,132 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 ---------------------------------------------------------------------------------
-
--- Binary bytecode file format
--- file:  
---     1b 4C 75 61       | Lua bytecode signature
---     [u8 version]      | Version number (0x52 for Lua 5.2, etc)
---     [u8 impl]         | Implementation (0 for reference impl)
---     [u8 endian]       | Big-endian flag
---     [u8 intsize]      | Size of integers (usually 4)
---     [u8 size_t]       | Size of pointers
---     [u8 instsize]     | Size of instructions (always 4)
---     [u8 numsize]      | Size of Lua numbers (usually 8)
---     [u8 use_int]      | Use integers instead of floats (usually for embedded)
---     19 93 0D 0A 1A 0A | Lua magic (used to detect presence of EOL conversion)
---     [func main]
--- string:  
---     [size_t size]
---     ... data
---     00
--- func:  
---     [int line_start] | debug info
---     [int line_end]   | debug info
---     [u8 nparams]
---     [u8 varargflags]
---     [u8 nregisters]
---     [int ninstructions]
---     ... instructions:
---         [instsize instruction]
---     [int nconsts]
---     ... consts:
---         [u8 type]
---         type 0: | nil
---         type 1: | bool
---             [u8 value]
---         type 3: | number
---             [numsize value]
---         type 4: | string
---             [string value]
---     [int nprimitives]
---     ... primitives:
---         [func primitive]
---     [int nupvals]
---     ... upvals:
---         [u8 stack]
---         [u8 register]
---     [string source] | debug info
---     [int nlines]
---     ... lines:
---         [int line]
---     [int nlocals]
---     ... locals:
---         [string name] | debug info
---         [int startpc]
---         [int endpc]
---     [int nupvalnames]
---     ... upvalnames:
---         [string name] | debug info
 require("util")
 parser = {}
 
+---------------------------------------------------------------------------------
+-- Type converter
+---------------------------------------------------------------------------------
+local convert_from = {} 
+local convert_to = {}
+
+function grab_byte(v)
+  	return math.floor(v / 256), string.char(math.floor(v) % 256)
+end
+
+local function convert_from_double(x)
+	local sign = 1
+	local mantissa = string.byte(x, 7) % 16
+	for i = 6, 1, -1 do mantissa = mantissa * 256 + string.byte(x, i) end
+	if string.byte(x, 8) > 127 then sign = -1 end
+	local exponent = (string.byte(x, 8) % 128) * 16 +
+					math.floor(string.byte(x, 7) / 16)
+	if exponent == 0 then return 0.0 end
+	mantissa = (math.ldexp(mantissa, -52) + 1.0) * sign
+	return math.ldexp(mantissa, exponent - 1023)
+end
+
+convert_from["double"] = convert_from_double
+
+local function convert_from_single(x)
+	local sign = 1
+	local mantissa = string.byte(x, 3) % 128
+	for i = 2, 1, -1 do mantissa = mantissa * 256 + string.byte(x, i) end
+	if string.byte(x, 4) > 127 then sign = -1 end
+	local exponent = (string.byte(x, 4) % 128) * 2 +
+					math.floor(string.byte(x, 3) / 128)
+	if exponent == 0 then return 0.0 end
+	mantissa = (math.ldexp(mantissa, -23) + 1.0) * sign
+	return math.ldexp(mantissa, exponent - 127)
+end
+
+convert_from["single"] = convert_from_single
+
+local function convert_from_int(x, size_int)
+	size_int = size_int or 8
+	local sum = 0
+	local highestbyte = string.byte(x, size_int)
+	-- test for negative number
+	if highestbyte <= 127 then
+		sum = highestbyte
+	else
+		sum = highestbyte - 256
+	end
+	for i = size_int-1, 1, -1 do
+		sum = sum * 256 + string.byte(x, i)
+	end
+	return sum
+end
+
+convert_from["int"] = function(x)
+ 	return convert_from_int(x, 4) 
+end
+
+convert_from["long long"] = convert_from_int
+
+convert_to["double"] = function(x)
+	local sign = 0
+	if x < 0 then sign = 1; x = -x end
+	local mantissa, exponent = math.frexp(x)
+	if x == 0 then -- zero
+		mantissa, exponent = 0, 0
+	else
+		mantissa = (mantissa * 2 - 1) * math.ldexp(0.5, 53)
+		exponent = exponent + 1022
+	end
+	local v, byte = "" -- convert to bytes
+	x = mantissa
+	for i = 1,6 do
+		x, byte = grab_byte(x); v = v..byte -- 47:0
+	end
+	x, byte = grab_byte(exponent * 16 + x); v = v..byte -- 55:48
+	x, byte = grab_byte(sign * 128 + x); v = v..byte -- 63:56
+	return v
+end
+
+convert_to["single"] = function(x)
+	local sign = 0
+	if x < 0 then sign = 1; x = -x end
+	local mantissa, exponent = math.frexp(x)
+	if x == 0 then -- zero
+		mantissa = 0; exponent = 0
+	else
+		mantissa = (mantissa * 2 - 1) * math.ldexp(0.5, 24)
+		exponent = exponent + 126
+	end
+	local v, byte = "" -- convert to bytes
+	x, byte = grab_byte(mantissa); v = v..byte -- 7:0
+	x, byte = grab_byte(x); v = v..byte -- 15:8
+	x, byte = grab_byte(exponent * 128 + x); v = v..byte -- 23:16
+	x, byte = grab_byte(sign * 128 + x); v = v..byte -- 31:24
+	return v
+end
+
+convert_to["int"] = function(x, size_int)
+	size_int = size_int or config.size_lua_Integer or 4
+	local v = ""
+	x = math.floor(x)
+	if x >= 0 then
+		for i = 1, size_int do
+			v = v..string.char(x % 256); x = math.floor(x / 256)
+		end
+	else-- x < 0
+		x = -x
+		local carry = 1
+		for i = 1, size_int do
+			local c = 255 - (x % 256) + carry
+			if c == 256 then c = 0; carry = 1 else carry = 0 end
+			v = v..string.char(c); x = math.floor(x / 256)
+		end
+	end
+	return v
+end
+
+convert_to["long long"] = convert_to["int"]
+
+---------------------------------------------------------------------------------
+-- Main parsing logic
+---------------------------------------------------------------------------------
 function parser.parse_bytecode(chunk)
 	local idx = 1
 	local previdx, len
@@ -101,26 +168,28 @@ function parser.parse_bytecode(chunk)
 	end
 
 	-- magic number
-	len = string.len(util.config.SIGNATURE)
-	if string.sub(chunk, 1, len) ~= util.config.SIGNATURE then
+	len = string.len("\27Lua")
+	if string.sub(chunk, 1, len) ~= "\27Lua" then
 		error("invalid lua bytecode file magic number")
 	end
 	idx = idx + len
 
 	-- version 
-	if read_byte() ~= util.config.VERSION then
+	if read_byte() ~= 83 then
 		error("invlaid version")
 	end
 
 	-- format 
-	if read_byte() ~= util.config.FORMAT then
+	if read_byte() ~= 0 then
 		error("invalid format")
 	end
 
-	if read_buf(string.len(util.config.LUAC_DATA), true)~= util.config.LUAC_DATA then
+	-- lua data
+	if read_buf(string.len("\25\147\r\n\26\n"), true)~= "\25\147\r\n\26\n" then
 		error("luac_data incorrect")
 	end
 
+	-- size width
 	if read_byte() ~= util.config.size_int then
 		error("invalid size_int value")
 	end
@@ -221,7 +290,7 @@ function parser.parse_bytecode(chunk)
 			if not x then
 				error("could not load lua_Integer")
 			else
-				local convert_func = util.convert_from[util.config.integer_type]
+				local convert_func = convert_from[util.config.integer_type]
 				if not convert_func then
 					error("could not find conversion function for lua_Integer")
 				end
@@ -234,7 +303,7 @@ function parser.parse_bytecode(chunk)
 			if not x then
 				error("could not load lua_Number")
 			else
-				local convert_func = util.convert_from[util.config.number_type]
+				local convert_func = convert_from[util.config.number_type]
 				if not convert_func then
 					error("could not find conversion function for lua_Number")
 				end
@@ -272,18 +341,17 @@ function parser.parse_bytecode(chunk)
 		end
 
 		local function get_const_val(t)
-			if t == util.config.LUA_TNIL then
-				return nil
-			elseif t == util.config.LUA_TBOOLEAN then
-				if read_byte() == 0 then return false else return true end
-			elseif t == util.config.LUA_TNUMFLT then
-				return read_num()
-			elseif t == util.config.LUA_TNUMINT then
-				return read_integer()
-			elseif t == util.config.LUA_TSHRSTR or t == util.config.LUA_TLNGSTR then
-				return read_string53().val
-			else
-				error("bad constant type "..t.." at "..previdx)
+			-- nil
+			if t == 0 then return nil
+			-- bool
+			elseif t == 1 then if read_byte() == 0 then return false else return true end
+			-- float num
+			elseif t == (3|(0<<4)) then return read_num()
+			-- int num
+			elseif t == (3|(1<<4)) then return read_integer()
+			-- short/long um
+			elseif t == (4|(0<<4)) or t == (4|(1<<4)) then return read_string53().val
+			else error("bad constant type "..t.." at "..previdx)
 			end
 		end
 

@@ -31,195 +31,187 @@ function runtime.exec_bytecode(func,upvalue)
     local return_val = {}
 
     -- auxiliary functions(should factor to oop styles)
-    local function a(instr) return instr.operand.a end
-    local function b(instr) return instr.operand.b end
-    local function c(instr) return instr.operand.c end
-    local function bx(instr) return instr.operand.bx end
-    local function ax(instr) return instr.operand.ax end
-    local function sbx(instr) return instr.operand.sbx end
     local function rk(index) if index>=256 then return const[index-256] else return r[index] end end
     local function convert_sbx(code) return ((code>>14) & 0x3ffff) - (((1<<18)-1)>>1) end
     -- bytecode dispatch table
     local dispatch = {
         -- MOVE 
-        [1] = function(instr) 
-            r[a(instr)] = r[b(instr)]
+        [1] = function(a,b,c) 
+            r[a] = r[b]
         end,
         -- LOADK
-        [2] = function(instr)
-            r[a(instr)] = const[bx(instr)]
+        [2] = function(a,bx)
+            r[a] = const[bx]
         end,
         -- LOADKX
-        [3] = function(intsr)
-            r[a(instr)] = const[bx(instr)]
+        [3] = function(a,bx)
+            r[a] = const[bx]
             pc = pc + 1
         end,
         -- LOADBOOL
-        [4] = function(instr)
-            r[a(instr)] = (b(instr)~=0) 
-            if c(instr) ~= 0 then
+        [4] = function(a,b,c)
+            r[a] = (b~=0) 
+            if c ~= 0 then
                 pc = pc+1
             end
         end,
         -- LOADNIL
-        [5] = function(instr)
-            for i=a(instr),b(instr) do
+        [5] = function(a,b,c)
+            for i=a,b do
                 r[i] = nil
             end
         end,
         --GETUPVAL
-        [6] = function(instr)
-            local v = upvalue[b(instr)]
-            r[a(instr)] =  v
+        [6] = function(a,b,c)
+            r[a] =  upvalue[b]
         end,
         --GETTABUP
-        [7] = function(instr)
-            local v = upvalue[b(instr)][rk(c(instr))]
-            r[a(instr)] = v
+        [7] = function(a,b,c)
+            r[a] = upvalue[b][rk(c)]
         end,
         --GETTABLE
-        [8] = function(instr)
-          r[a(instr)] = r[b(instr)][rk(c(instr))]
+        [8] = function(a,b,c)
+          r[a] = r[b][rk(c)]
         end,
         --SETTABUP
-        [9] = function(instr)
-            upvalue[a(instr)][rk(b(instr))]  = rk(c(instr))
+        [9] = function(a,b,c)
+            upvalue[a][rk(b)]  = rk(c)
         end,
         --SETUPVAL
-        [10] = function(instr)
-            upvalue[b(instr)] = r[a(instr)]
+        [10] = function(a,b,c)
+            upvalue[b] = r[a]
         end,
         --SETTABLE
-        [11] = function(instr)
-            r[a(instr)][rk(b(instr))] = rk(c(instr))
+        [11] = function(a,b,c)
+            r[a][rk(b)] = rk(c)
         end,
         --NEWTABLE
-        [12] = function(instr)
-            r[a(instr)] = {}
+        [12] = function(a,b,c)
+            r[a] = {}
         end,
         --SELF
-        [13] = function(instr)
-            r[a(instr)+1] = r[b(instr)]
-            r[a(instr)] = r[b(instr)][rk(c(instr))]
+        [13] = function(a,b,c)
+            r[a+1] = r[b]
+            r[a] = r[b][rk(c)]
         end,
         --ADD
-        [14] = function(instr)
-            r[a(instr)] = rk(b(instr)) + rk(c(instr))
+        [14] = function(a,b,c)
+            r[a] = rk(b) + rk(c)
         end,
         --SUB
-        [15] = function(instr)
-            r[a(instr)] = rk(b(instr)) - rk(c(instr))
+        [15] = function(a,b,c)
+            r[a] = rk(b) - rk(c)
         end,
         --MUL
-        [16] = function(instr)
-            r[a(instr)] = rk(b(instr)) * rk(c(instr))
+        [16] = function(a,b,c)
+            r[a] = rk(b) * rk(c)
         end,
         --MOD
-        [17] = function(instr)
-            r[a(instr)] = rk(b(instr)) % rk(c(instr))
+        [17] = function(a,b,c)
+            r[a] = rk(b) * rk(c)
         end,
         --POW
-        [18] = function(instr)
-            r[a(instr)] = rk(b(instr)) ^ rk(c(instr))
+        [18] = function(a,b,c)
+            r[a] = rk(b) ^ rk(c)
         end,
         --DIV
-        [19] = function(instr)
-            r[a(instr)] = rk(b(instr)) / rk(c(instr))
+        [19] = function(a,b,c)
+            r[a] = rk(b) / rk(c)
         end,
         --IDIV
-        [20] = function(instr)
-            r[a(instr)] = rk(b(instr)) // rk(c(instr))
+        [20] = function(a,b,c)
+            r[a] = rk(b) // rk(c)
         end,
         --BAND
-        [21] = function(instr)
-            r[a(instr)] = rk(b(instr)) & rk(c(instr))
+        [21] = function(a,b,c)
+            r[a] = rk(b) & rk(c)
         end,
         --BOR
-        [22] = function(instr)
-            r[a(instr)] = rk(b(instr)) | rk(c(instr))
+        [22] = function(a,b,c)
+            r[a] = rk(b) | rk(c)
         end,
         --BXOR
-        [23] = function(instr)
-            r[a(instr)] = rk(b(instr)) ~ rk(c(instr))
+        [23] = function(a,b,c)
+            r[a] = rk(b) ~ rk(c)
         end,
         --SHL
-        [24] = function(instr)
-            r[a(instr)] = rk(b(instr)) << rk(c(instr))
+        [24] = function(a,b,c)
+            r[a] = rk(b) << rk(c)
         end,
         --SHR
-        [25] = function(instr)
-            r[a(instr)] = rk(b(instr)) >> rk(c(instr))
+        [25] = function(a,b,c)
+            r[a] = rk(b) >> rk(c)
         end,
         --UNM
-        [26] = function(instr)
-            r[a(instr)] = -r[b(instr)]
+        [26] = function(a,b,c)
+            r[a] = -r[b]
         end,
         --BNOT
-        [27] = function(instr)
-            r[a(instr)] = ~r[b(instr)]
+        [27] = function(a,b,c)
+            r[a] = ~r[b]
         end,
         --NOT
-        [28] = function(instr)
-            r[a(instr)] = not r[b(instr)]
+        [28] = function(a,b,c)
+            r[a] = not r[b]
         end,
         -- LEN
-        [29] = function(instr) 
-            r[a(instr)] = #r[b(instr)]
+        [29] = function(a,b,c) 
+            r[a] = #r[b]
         end,
         -- CONCAT
-        [30] = function(instr) 
+        [30] = function(a,b,c) 
             local res = ""
-            for i=b(instr),c(instr) do
+            for i=b,c do
                 res = res..r[i]
             end
         end,
         -- JMP
-        [31] = function(instr)
-            pc = pc + sbx(instr)
+        [31] = function(a,sbx)
+            pc = pc + sbx
         end,
         -- EQ
-        [32] = function(instr)
-            if (rk(b(instr)) == rk(c(instr))) ~= (a(instr)~=0) then
+        [32] = function(a,b,c)
+            if (rk(b) == rk(c)) ~= (a~=0) then
                 pc = pc + 1 
             end
         end,
         -- LT
-        [33] = function(instr)  
-            if (rk(b(instr)) < rk(c(instr))) ~= (a(instr)~=0) then
+        [33] = function(a,b,c)  
+            if (rk(b) < rk(c)) ~= (a~=0) then
                 pc = pc + 1 
             end
         end,
         -- LE
-        [34] = function(instr) 
-            if (rb(b(instr)) <= rk(c(instr))) ~= (a(instr)~=0) then
+        [34] = function(a,b,c) 
+            if (rk(b) <= rk(c)) ~= (a~=0) then
                 pc = pc + 1
             end
         end,
         -- TEST
-        [35] = function(instr)
-            if not (r[a(instr)]~= c(instr)) then
+        [35] = function(a,b,c)
+            if not (r[a]~= c) then
                 pc = pc + 1
             end
         end,
         -- TESTSET
-        [36] = function(instr)
-            if r[b(instr)] ~= c(instr) then
-                r[a(instr)] = r[b(instr)]
+        [36] = function(a,b,c)
+            if r[b] ~= c then
+                r[a] = r[b]
             else
                 pc = pc +1
             end
         end,
         -- CALL
-        [37] = function(instr) 
-            local nparam = b(instr)
-            local nresult = c(instr)
+        [37] = function(a,b,c) 
+            local nparam = b
+            local nresult = c
             local param = {}
             if nparam ~= 1 then
                  -- there are (B-1) parameters
-                local param_start = a(instr) + 1
-                local param_end = (b(instr) == 0) and #r or (a(instr) + b(instr) - 1)
+                local param_start = a + 1
+                local param_end = (b == 0) and #r or (a + b - 1)
                 assert(param_start<=param_end,"invalid parameter range")
-                assert(r[a(instr)] ~= nil,"callee should not be null")
+                assert(r[a] ~= nil,"callee should not be null")
                 for i=param_start,param_end do
                     table.insert(param,r[i])
                 end            
@@ -227,28 +219,28 @@ function runtime.exec_bytecode(func,upvalue)
 
             if nresult == 0 then
                 -- if nresult is 0, then multiple return results are saved
-                local ret = r[a(instr)](table.unpack(param))
-                for i=a(instr),a(instr)+#ret - 1 do
-                    r[i] = ret[i-a(instr)+1]
+                local ret = r[a](table.unpack(param))
+                for i=a,a+#ret - 1 do
+                    r[i] = ret[i-a+1]
                 end
-                for i=a(instr)+#ret,#r do
+                for i=a+#ret,#r do
                     r[i] = nil
                 end
             elseif nresult == 1 then
                 -- if nresult is 1, no return results are saved
-                r[a(instr)](table.unpack(param))
+                r[a](table.unpack(param))
             else
                 -- if nresult is 2 or more, return values are saved
-                local result = r[a(instr)](table.unpack(param))
-                r[a(instr)] = result[1]
+                local result = r[a](table.unpack(param))
+                r[a] = result[1]
             end
         end,
         -- TAILCALL
-        [38] = function(instr) error("not implemented yet") end,
+        [38] = function(a,b,c) error("not implemented yet") end,
         -- RETURN
-        [39] = function(instr) 
-            local ret_start = a(instr)
-            local ret_end = (b(instr)==0) and (#r) or (b(instr)+a(instr)-2)
+        [39] = function(a,b,c) 
+            local ret_start = a
+            local ret_end = (b==0) and (#r) or (b+a-2)
             assert(ret_start<=ret_start,"invalid return result range")
             for i=ret_start,ret_end do
                 table.insert(return_val,r[i])
@@ -256,45 +248,45 @@ function runtime.exec_bytecode(func,upvalue)
             flow_stop = true
         end,
         -- FORLOOP
-        [40] = function(instr) 
-            local step = r[a(instr)+2]
-            local idx = r[a(instr)] + step
-            local limit = r[a(instr)+1]
+        [40] = function(a,sbx) 
+            local step = r[a+2]
+            local idx = r[a] + step
+            local limit = r[a+1]
             if (0<step and idx<=limit ) or (step<0 and limit<=idx) then
-                pc = pc +convert_sbx(func.code[pc])
-                r[a(instr)] = idx
-                r[a(instr)+3] = idx
+                pc = pc + sbx
+                r[a] = idx
+                r[a+3] = idx
             end
         end,
         -- FORPREP
-        [41] = function(instr) 
-            r[a(instr)] = r[a(instr)] - r[a(instr)+2]
-            pc = pc + convert_sbx(func.code[pc])
+        [41] = function(a,sbx) 
+            r[a] = r[a] - r[a+2]
+            pc = pc + sbx
         end,
         -- TFORCALL
         [42] = function(instr) error("not implemented yet") end,
         -- TFORLOOP
         [43] = function(instr) error("not implemented yet") end,
         -- SETLIST
-        [44] = function(instr) 
-            local nelement = b(instr)
-            local c = c(instr)
+        [44] = function(a,b,c) 
+            local nelement = b
+            local c = c
             if c==0 then
                 c = code[pc+1]
             end
             if nelement == 0 then
-                for i=1,#r-a(instr) do
-                    r[a(instr)][(c-1)*util.config.FPF+i] = r[a(instr)+i]
+                for i=1,#r-a do
+                    r[a][(c-1)*util.config.FPF+i] = r[a+i]
                 end
             else
                 for i=1,nelement do
-                    r[a(instr)][(c-1)*util.config.FPF+i] = r[a(instr)+i]
+                    r[a][(c-1)*util.config.FPF+i] = r[a+i]
                 end
             end
         end,
         -- CLOSURE
-        [45] = function(instr) 
-            local proto = func.proto[bx(instr)]
+        [45] = function(a,bx) 
+            local proto = func.proto[bx]
             local newupvalue = setmetatable({
                 [0]=upvalue[0]
             },{
@@ -313,15 +305,15 @@ function runtime.exec_bytecode(func,upvalue)
                     end
                 end
             })
-            r[a(instr)] = function(...)
+            r[a] = function(...)
                 proto.args = table.pack(...)
                 return runtime.exec_bytecode(proto, newupvalue)
             end
         end,
         -- VARARG
-        [46] = function(instr) error("not implemented yet") end,
+        [46] = function(a,b,c) error("not implemented yet") end,
         -- EXTRAARG
-        [47] = function(instr) error("not implemented yet") end,
+        [47] = function(ax) error("not implemented yet") end,
     }
 
     -- setup environment
@@ -336,7 +328,18 @@ function runtime.exec_bytecode(func,upvalue)
     -- do execution
     while pc <= func.code_size do
         local instr = util.decode_instr(func.code[pc])
-        dispatch[instr.instr_id](instr)
+        if instr.mode == "iABC" then
+            dispatch[instr.instr_id](instr.operand.a,instr.operand.b,instr.operand.c)
+        elseif instr.mode == "iABx" then
+            dispatch[instr.instr_id](instr.operand.a,instr.operand.bx)
+        elseif instr.mode == "iAsBx" then
+            dispatch[instr.instr_id](instr.operand.a,instr.operand.sbx)
+        elseif instr.mode == "iAx" then
+            dispatch[instr.instr_id](instr.operand.ax)
+        else
+            error("should never reach here:(")    
+        end
+        
         if flow_stop then
             return return_val
         end

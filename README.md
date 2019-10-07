@@ -7,7 +7,11 @@ You can simply launch it by a bootstrap `lua`  and feed a binary bytecode file i
 # Enjoy it! 
 $ lua ylua.lua <bytecode_file>
 # Trace bytecode execution flow with --debug option
-$ lua ylua.lua <bytecode_file> --deubug
+$ lua ylua.lua <bytecode_file> --help
+YLuaVM - A metacircular Lua VM written in Lua itself
+Usage: lua ylua.lua <bytecode_file>
+    --help|-h : show help message
+    --debug|-d : trace bytecode execution flow
 # Run unit test to make sure it works well
 $ ./runtest
 ```

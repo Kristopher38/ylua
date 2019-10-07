@@ -21,13 +21,22 @@
 ---------------------------------------------------------------------------------
 require("parser")
 require("runtime")
-require("util")
+
+local help = 
+[[YLuaVM - A metacircular Lua VM written in Lua itself
+Usage: lua ylua.lua <bytecode_file>
+    --help|-h : show help message
+    --debug|-d : trace bytecode execution flow
+]]
 
 local filename = nil
 for i=1,#arg do
     if string.match(arg[i],"-+") ~= nil then
-        if arg[i] == "--debug" or arg[i] == "-d" then
-            util.config.debug = true
+        if arg[i] == "--help" or arg[i] == "-h" then
+            print(help)
+            os.exit(0)
+        elseif arg[i] == "--debug" or arg[i] == "-d" then
+            runtime.debug = true
         end
     else
         filename = arg[i]

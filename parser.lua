@@ -19,8 +19,23 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 ---------------------------------------------------------------------------------
-require("util")
 parser = {}
+
+---------------------------------------------------------------------------------
+-- Global configurations
+---------------------------------------------------------------------------------
+local config = {
+	endianness = 1, 
+	size_int = 4,         
+	size_size_t = 8,
+	size_instruction = 4,
+	size_lua_Integer = 8,
+	integer_type = "long long",
+	size_lua_Number = 8,     
+	integral = 0,             
+	number_type = "double", 
+	debug = false,  
+}
 
 ---------------------------------------------------------------------------------
 -- Type converter
@@ -32,7 +47,7 @@ function grab_byte(v)
   	return math.floor(v / 256), string.char(math.floor(v) % 256)
 end
 
-local function convert_from_double(x)
+convert_from["double"] = function(x)
 	local sign = 1
 	local mantissa = string.byte(x, 7) % 16
 	for i = 6, 1, -1 do mantissa = mantissa * 256 + string.byte(x, i) end
@@ -44,9 +59,7 @@ local function convert_from_double(x)
 	return math.ldexp(mantissa, exponent - 1023)
 end
 
-convert_from["double"] = convert_from_double
-
-local function convert_from_single(x)
+convert_from["single"] = function(x)
 	local sign = 1
 	local mantissa = string.byte(x, 3) % 128
 	for i = 2, 1, -1 do mantissa = mantissa * 256 + string.byte(x, i) end
@@ -57,8 +70,6 @@ local function convert_from_single(x)
 	mantissa = (math.ldexp(mantissa, -23) + 1.0) * sign
 	return math.ldexp(mantissa, exponent - 127)
 end
-
-convert_from["single"] = convert_from_single
 
 local function convert_from_int(x, size_int)
 	size_int = size_int or 8
@@ -76,9 +87,7 @@ local function convert_from_int(x, size_int)
 	return sum
 end
 
-convert_from["int"] = function(x)
- 	return convert_from_int(x, 4) 
-end
+convert_from["int"] = function(x) return convert_from_int(x, 4) end
 
 convert_from["long long"] = convert_from_int
 
@@ -86,13 +95,13 @@ convert_to["double"] = function(x)
 	local sign = 0
 	if x < 0 then sign = 1; x = -x end
 	local mantissa, exponent = math.frexp(x)
-	if x == 0 then -- zero
+	if x == 0 then
 		mantissa, exponent = 0, 0
 	else
 		mantissa = (mantissa * 2 - 1) * math.ldexp(0.5, 53)
 		exponent = exponent + 1022
 	end
-	local v, byte = "" -- convert to bytes
+	local v, byte = ""
 	x = mantissa
 	for i = 1,6 do
 		x, byte = grab_byte(x); v = v..byte -- 47:0
@@ -160,7 +169,7 @@ function parser.parse_bytecode(chunk)
 		previdx = idx
 		idx = idx + size
 		local b = string.sub(chunk, idx - size, idx - 1)
-		if util.config.endianness == 1 or notreverse then
+		if config.endianness == 1 or notreverse then
 	  		return b
 		else
 	  		return string.reverse(b)
@@ -190,23 +199,23 @@ function parser.parse_bytecode(chunk)
 	end
 
 	-- size width
-	if read_byte() ~= util.config.size_int then
+	if read_byte() ~= config.size_int then
 		error("invalid size_int value")
 	end
 
-	if read_byte() ~= util.config.size_size_t then
+	if read_byte() ~= config.size_size_t then
 		error("invalid size_t")
 	end
 
-	if read_byte() ~= util.config.size_instruction then
+	if read_byte() ~= config.size_instruction then
 		error("invalid instruction")
 	end
 
-	if read_byte() ~= util.config.size_lua_Integer then
+	if read_byte() ~= config.size_lua_Integer then
 		error("invalid lua integer")
 	end
 
-	if read_byte() ~= util.config.size_lua_Number then
+	if read_byte() ~= config.size_lua_Number then
 		error("invalid lua number")
 	end
 
@@ -255,17 +264,17 @@ function parser.parse_bytecode(chunk)
 		}
 
 		local function read_int()
-		local x = read_buf(util.config.size_int)
+		local x = read_buf(config.size_int)
 		if not x then
 			error("could not load integer")
 		else
 			local sum = 0
-			for i = util.config.size_int, 1, -1 do
+			for i = config.size_int, 1, -1 do
 			sum = sum * 256 + string.byte(x, i)
 			end
 
-			if string.byte(x, util.config.size_int) > 127 then
-			sum = sum - math.ldexp(1, 8 * util.config.size_int)
+			if string.byte(x, config.size_int) > 127 then
+			sum = sum - math.ldexp(1, 8 * config.size_int)
 			end
 			if sum < 0 then error("bad integer") end
 			return sum
@@ -273,12 +282,12 @@ function parser.parse_bytecode(chunk)
 		end
 
 		local function read_size()
-		local x = read_buf(util.config.size_size_t)
+		local x = read_buf(config.size_size_t)
 		if not x then
 			return
 		else
 			local sum = 0
-			for i = util.config.size_size_t, 1, -1 do
+			for i = config.size_size_t, 1, -1 do
 			sum = sum * 256 + string.byte(x, i)
 			end
 			return sum
@@ -286,11 +295,11 @@ function parser.parse_bytecode(chunk)
 		end
 
 		local function read_integer()
-			local x = read_buf(util.config.size_lua_Integer)
+			local x = read_buf(config.size_lua_Integer)
 			if not x then
 				error("could not load lua_Integer")
 			else
-				local convert_func = convert_from[util.config.integer_type]
+				local convert_func = convert_from[config.integer_type]
 				if not convert_func then
 					error("could not find conversion function for lua_Integer")
 				end
@@ -299,11 +308,11 @@ function parser.parse_bytecode(chunk)
 		end
 
 		local function read_num()
-			local x = read_buf(util.config.size_lua_Number)
+			local x = read_buf(config.size_lua_Number)
 			if not x then
 				error("could not load lua_Number")
 			else
-				local convert_func = convert_from[util.config.number_type]
+				local convert_func = convert_from[config.number_type]
 				if not convert_func then
 					error("could not find conversion function for lua_Number")
 				end
@@ -371,7 +380,7 @@ function parser.parse_bytecode(chunk)
 		-- code
 		func.code_size = read_int()
 		for i = 1, func.code_size do
-			local val = read_buf(util.config.size_instruction)
+			local val = read_buf(config.size_instruction)
 			assert(#val == 4 and type(val)=="string","expect 32 bits bytecode consumed")
 			val =  	(string.byte(val,1) << 0)  | 
 					(string.byte(val,2) << 8)  |
@@ -424,6 +433,5 @@ function parser.parse_bytecode(chunk)
 	if (#chunk+1) ~= idx then error("should eof") end
 	return func
 end
-
 
 return parser

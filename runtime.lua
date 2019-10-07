@@ -19,8 +19,99 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 ---------------------------------------------------------------------------------
-require("util")
-runtime={}
+runtime={
+    debug = false,
+}
+
+---------------------------------------------------------------------------------
+-- Opcode table and corresponding mode
+---------------------------------------------------------------------------------
+local iABC, iABx, iAsBx, iAx = 0, 1, 2, 3
+local opcode = { 
+    [1] = { MOVE = iABC },
+    [2] = { LOADK = iABx },
+    [3] = { LOADKX = iABx },
+    [4] = { LOADBOOL = iABC },
+    [5] = { LOADNIL = iABC },
+    [6] = { GETUPVAL = iABC },
+    [7] = { GETTABUP = iABC },
+    [8] = { GETTABLE = iABC },
+    [9] = { SETTABUP = iABC },
+    [10] = { SETUPVAL = iABC },
+    [11] = { SETTABLE = iABC },
+    [12] = { NEWTABLE = iABC },
+    [13] = { SELF = iABC },
+    [14] = { ADD = iABC },
+    [15] = { SUB = iABC },
+    [16] = { MUL = iABC },
+    [17] = { MOD = iABC },
+    [18] = { POW = iABC },
+    [19] = { DIV = iABC }, 
+    [20] = { IDIV = iABC },
+    [21] = { BAND = iABC },
+    [22] = { BOR = iABC },
+    [23] = { BXOR = iABC },
+    [24] = { SHL = iABC },
+    [25] = { SHR = iABC },
+    [26] = { UNM = iABC },
+    [27] = { BNOT = iABC },
+    [28] = { NOT = iABC },
+    [29] = { LEN = iABC },
+    [30] = { CONCAT = iABC },
+    [31] = { JMP = iAsBx },
+    [32] = { EQ = iABC },
+    [33] = { LT = iABC },
+    [34] = { LE = iABC },
+    [35] = { TEST = iABC },
+    [36] = { TESTSET = iABC },
+    [37] = { CALL = iABC },
+    [38] = { TAILCALL = iABC },
+    [39] = { RETURN = iABC },
+    [40] = { FORLOOP = iAsBx },
+    [41] = { FORPREP = iAsBx },
+    [42] = { TFORCALL = iABC },
+    [43] = { TFORLOOP = iAsBx },
+    [44] = { SETLIST = iABC },
+    [45] = { CLOSURE = iABx },
+    [46] = { VARARG = iABC },
+    [47] = { EXTRAARG = iAx },
+}
+
+---------------------------------------------------------------------------------
+-- Execution engine
+---------------------------------------------------------------------------------
+local function decode_instr(code)
+    local op_num = (code & 0x3f) -- 6bits for instruction id
+    if opcode[op_num+1] == nil then error("invalid bytecode") end
+    local k,v  = next(opcode[op_num+1])
+    if v == iABC then
+		local a, c, b = ((code>>6) & 0xff), ((code>>14) & 0x1ff), ((code>>23) & 0x1ff)
+		if runtime.debug == true then 
+			print(string.format("[%d]",op_num+1),k,a,b,c)		
+		end
+        return {instr_name=k,instr_id=op_num+1,mode="iABC",operand={a=a,b=b,c=c}}
+    elseif v == iABx then
+        local a,bx = ((code>>6) & 0xff), ((code>>14) & 0x3ffff)
+		if runtime.debug == true then 
+			print(string.format("[%d]",op_num+1),k,a,bx)
+		end
+		return {instr_name=k,instr_id=op_num+1,mode="iABx",operand={a=a,bx=bx}}
+    elseif v == iAsBx then
+        local a,sbx = ((code>>6) & 0xff), ((code>>14) & 0x3ffff) - (((1<<18)-1)>>1)
+		if runtime.debug == true then 
+			print(string.format("[%d]",op_num+1),k,a,sbx)
+		end
+		return {instr_name=k,instr_id=op_num+1,mode="iAsBx",operand={a=a,sbx=sbx}}
+    elseif v == iAx then
+        local ax = (code>>6) & 0x3ffffff
+		if runtime.debug == true then 
+			print(string.format("[%d]",op_num+1),k,ax)
+		end
+		return {instr_name=k,instr_id=op_num+1,mode="iAx",operand={ax=ax}}
+    else
+        error("invalid opcode mode")
+    end
+end
 
 function runtime.exec_bytecode(func,upvalue)
     -- execution environmnet
@@ -275,12 +366,12 @@ function runtime.exec_bytecode(func,upvalue)
                 c = code[pc+1]
             end
             if nelement == 0 then
-                for i=1,#r-a do
-                    r[a][(c-1)*util.config.FPF+i] = r[a+i]
+                for i=1,#r-a do --FPF 50
+                    r[a][(c-1)*50+i] = r[a+i]
                 end
             else
                 for i=1,nelement do
-                    r[a][(c-1)*util.config.FPF+i] = r[a+i]
+                    r[a][(c-1)*50+i] = r[a+i]
                 end
             end
         end,
@@ -327,7 +418,7 @@ function runtime.exec_bytecode(func,upvalue)
 
     -- do execution
     while pc <= func.code_size do
-        local instr = util.decode_instr(func.code[pc])
+        local instr = decode_instr(func.code[pc])
         if instr.mode == "iABC" then
             dispatch[instr.instr_id](instr.operand.a,instr.operand.b,instr.operand.c)
         elseif instr.mode == "iABx" then

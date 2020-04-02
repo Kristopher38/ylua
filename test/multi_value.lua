@@ -3,4 +3,4 @@ function multi_values()
 end
 local t = table.pack(multi_values())
 print(multi_values())
-print(t)
+print(t[1], t[2], t[3], t[4])

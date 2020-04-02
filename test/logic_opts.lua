@@ -7,7 +7,9 @@ a,b,c = 1,2,4
 local d = not a 
 assert(d == false)
 d = a and b
-assert(d==1)
+a,b = 3, 5
+d = a and b
+assert(d == 5)
 d = a or b
-assert(d==2)
-print(a,b,d)
+assert(d == 3) 
+print(a,b,c,d)

@@ -19,8 +19,15 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 ---------------------------------------------------------------------------------
-require("parser")
-require("runtime")
+package.loaded.parser = nil
+package.loaded.runtime = nil
+local parser = require("parser")
+local runtime = require("runtime")
+
+local arg = arg
+if component then -- check if running inside OC
+    arg = {...}
+end
 
 local help = 
 [[YLuaVM - A metacircular Lua VM written in Lua itself
@@ -43,13 +50,17 @@ for i=1,#arg do
     end
 end
 
-local file = io.open(filename,"rb")
-if file==nil then
-    error("can not open file "..arg[1])
+if filename then
+    local file = io.open(filename,"rb")
+    if file==nil then
+        error("can not open file "..arg[1])
+    end
+    local func = parser.parse_bytecode(file:read("*all"))
+    file:close()
+    local env = {
+        [0]= _ENV
+    }
+    runtime.exec_bytecode(func,env)
+else
+    print(help)
 end
-local func = parser.parse_bytecode(file:read("*all"))
-file:close()
-local env = {
-    [0]= _ENV
-}
-runtime.exec_bytecode(func,env)

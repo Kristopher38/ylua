@@ -19,15 +19,16 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 ---------------------------------------------------------------------------------
-parser = {}
+local parser = {}
 
 ---------------------------------------------------------------------------------
 -- Global configurations
 ---------------------------------------------------------------------------------
 local config = {
+	opencomputers = component and true or false,
 	endianness = 1, 
 	size_int = 4,         
-	size_size_t = 8,
+	size_size_t = component and 8 or 4, -- check if on opencomputers
 	size_instruction = 4,
 	size_lua_Integer = 8,
 	integer_type = "long long",
@@ -43,7 +44,7 @@ local config = {
 local convert_from = {} 
 local convert_to = {}
 
-function grab_byte(v)
+local function grab_byte(v)
   	return math.floor(v / 256), string.char(math.floor(v) % 256)
 end
 

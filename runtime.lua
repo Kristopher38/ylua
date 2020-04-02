@@ -19,7 +19,7 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 ---------------------------------------------------------------------------------
-runtime={
+local runtime={
     debug = false,
 }
 
@@ -148,7 +148,7 @@ function runtime.exec_bytecode(func,upvalue)
         end,
         -- LOADNIL
         [5] = function(a,b,c)
-            for i=a,b do
+            for i=a,a+b do
                 r[i] = nil
             end
         end,
@@ -199,7 +199,7 @@ function runtime.exec_bytecode(func,upvalue)
         end,
         --MOD
         [17] = function(a,b,c)
-            r[a] = rk(b) * rk(c)
+            r[a] = rk(b) % rk(c)
         end,
         --POW
         [18] = function(a,b,c)
@@ -250,11 +250,8 @@ function runtime.exec_bytecode(func,upvalue)
             r[a] = #r[b]
         end,
         -- CONCAT
-        [30] = function(a,b,c) 
-            local res = ""
-            for i=b,c do
-                res = res..r[i]
-            end
+        [30] = function(a,b,c)
+            r[a] = table.concat(r, b, c)
         end,
         -- JMP
         [31] = function(a,sbx)
@@ -280,13 +277,15 @@ function runtime.exec_bytecode(func,upvalue)
         end,
         -- TEST
         [35] = function(a,b,c)
-            if not (r[a]~= c) then
+            if (r[a] and 1 or 0) == c then
                 pc = pc + 1
             end
         end,
         -- TESTSET
         [36] = function(a,b,c)
-            if r[b] ~= c then
+            print(r[b], c)
+            if (r[b] and 1 or 0) == c then
+                print(a, r[b])
                 r[a] = r[b]
             else
                 pc = pc +1

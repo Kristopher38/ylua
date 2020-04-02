@@ -283,9 +283,7 @@ function runtime.exec_bytecode(func,upvalue)
         end,
         -- TESTSET
         [36] = function(a,b,c)
-            print(r[b], c)
             if (r[b] and 1 or 0) == c then
-                print(a, r[b])
                 r[a] = r[b]
             else
                 pc = pc +1

@@ -1,9 +1,9 @@
 #! /bin/bash
 for file in $( ls test | grep -E '^.*\.lua$')
 do
-    luac -o "test/"${file}"c" "test/"$file
+    luac53 -o "test/"${file}"c" "test/"$file
     echo "Running "$file"..."
-    lua ylua.lua "test/"$file"c" 
+    lua53 ylua.lua "test/"$file"c"
     echo "----------------------------------"
 done
 

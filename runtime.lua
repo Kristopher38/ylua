@@ -21,6 +21,7 @@
 ---------------------------------------------------------------------------------
 local runtime={
     debug = false,
+    fpf = 50, -- LFIELDS_PER_FLUSH from lopcodes.h
 }
 
 ---------------------------------------------------------------------------------
@@ -363,13 +364,14 @@ function runtime.exec_bytecode(func,upvalue)
                 pc = pc + 1
                 c = decode_instr(func.code[pc]).operand.ax -- c has to be AX of next instruction (which is EXTRAARG)
             end
+            local fpf = runtime.fpf -- fields per flush (default 50)
             if nelement == 0 then
-                for i=1,#r-a do --FPF 50
-                    r[a][(c-1)*50+i] = r[a+i]
+                for i=1,#r-a do
+                    r[a][(c-1)*fpf+i] = r[a+i]
                 end
             else
                 for i=1,nelement do
-                    r[a][(c-1)*50+i] = r[a+i]
+                    r[a][(c-1)*fpf+i] = r[a+i]
                 end
             end
         end,

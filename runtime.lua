@@ -360,7 +360,8 @@ function runtime.exec_bytecode(func,upvalue)
             local nelement = b
             local c = c
             if c==0 then
-                c = code[pc+1]
+                pc = pc + 1
+                c = decode_instr(func.code[pc]).operand.ax -- c has to be AX of next instruction (which is EXTRAARG)
             end
             if nelement == 0 then
                 for i=1,#r-a do --FPF 50
@@ -400,8 +401,9 @@ function runtime.exec_bytecode(func,upvalue)
         end,
         -- VARARG
         [46] = function(a,b,c) error("not implemented yet") end,
-        -- EXTRAARG
-        [47] = function(ax) error("not implemented yet") end,
+        -- EXTRAARG - shouldn't ever be reached in normal execution as it's essentially used as an
+        -- extra data opcode, not an instruction opcode, and is emitted only after SETLIST if C == 0
+        [47] = function(ax) error("EXTRAARG executed as normal instruction") end,
     }
 
     -- setup environment

@@ -1,15 +1,27 @@
+-- TESTSET
 local a,b,c
 c = a and b
 assert(c==nil)
 c = a or b
 assert(c==nil)
-a,b,c = 1,2,4
-local d = not a 
-assert(d == false)
-d = a and b
+
 a,b = 3, 5
-d = a and b
-assert(d == 5)
-d = a or b
-assert(d == 3) 
-print(a,b,c,d)
+c = not a 
+assert(c == false)
+c = a and b
+assert(c == 5)
+c = a or b
+assert(c == 3)
+
+-- TEST
+a,b = false, 3
+if a or b then
+    assert(true)
+else
+    assert(false)
+end
+if a and b then
+    assert(false)
+else
+    assert(true)
+end

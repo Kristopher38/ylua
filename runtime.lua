@@ -137,8 +137,8 @@ function runtime.exec_bytecode(func,upvalue)
         end,
         -- LOADKX
         [3] = function(a,bx)
-            r[a] = const[bx]
             pc = pc + 1
+            r[a] = const[decode_instr(func.code[pc]).operand.ax] -- index has to be AX of next instruction (which is EXTRAARG)
         end,
         -- LOADBOOL
         [4] = function(a,b,c)
@@ -252,7 +252,7 @@ function runtime.exec_bytecode(func,upvalue)
         end,
         -- CONCAT
         [30] = function(a,b,c)
-            r[a] = table.concat(r, b, c)
+            r[a] = table.concat(r, "", b, c)
         end,
         -- JMP
         [31] = function(a,sbx)
@@ -278,16 +278,18 @@ function runtime.exec_bytecode(func,upvalue)
         end,
         -- TEST
         [35] = function(a,b,c)
-            if (r[a] and 1 or 0) == c then
+            -- Lua bytecode reference on OP_TEST is wrong, see https://github.com/dibyendumajumdar/ravi/issues/184
+            if (r[a] and 1 or 0) ~= c then
                 pc = pc + 1
             end
         end,
         -- TESTSET
         [36] = function(a,b,c)
-            if (r[b] and 1 or 0) == c then
-                r[a] = r[b]
+            -- Lua bytecode reference on OP_TESTSET is wrong, see https://github.com/dibyendumajumdar/ravi/issues/184
+            if (r[b] and 1 or 0) ~= c then
+                pc = pc + 1
             else
-                pc = pc +1
+                r[a] = r[b]
             end
         end,
         -- CALL

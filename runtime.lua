@@ -380,21 +380,19 @@ function runtime.exec_bytecode(func,upvalue)
         -- CLOSURE
         [45] = function(a,bx) 
             local proto = func.proto[bx]
-            local newupvalue = setmetatable({
-                [0]=upvalue[0]
-            },{
+            local newupvalue = setmetatable({}, {
                 __index = function(o,i)
-                    if func.upvalue[i-1].instack == 0 then
-                        return r[func.upvalue[i-1].index]
+                    if proto.upvalue[i].instack == 1 then
+                        return r[proto.upvalue[i].index]
                     else
-                        return upvalue[func.upvalue[i-1].index]
+                        return upvalue[proto.upvalue[i].index]
                     end
                 end,
                 __newindex = function(o,i,v)
-                    if func.upvalue[i-1].instack == 0 then
-                        r[func.upvalue[i-1].index] = v
+                    if proto.upvalue[i].instack == 1 then
+                        r[proto.upvalue[i].index] = v
                     else
-                        upvalue[func.upvalue[i-1].index] = v
+                        upvalue[proto.upvalue[i].index] = v
                     end
                 end
             })

@@ -121,6 +121,7 @@ function runtime.exec_bytecode(func,upvalue)
     local const = {}
     local flow_stop = false
     local return_val = {}
+    local top = func.max_stack
 
     -- auxiliary functions(should factor to oop styles)
     local function rk(index) if index>=256 then return const[index-256] else return r[index] end end
@@ -300,7 +301,7 @@ function runtime.exec_bytecode(func,upvalue)
             if nparam ~= 1 then
                  -- there are (B-1) parameters
                 local param_start = a + 1
-                local param_end = (b == 0) and #r or (a + b - 1)
+                local param_end = (b == 0) and top or (a + b - 1)
                 assert(param_start<=param_end,"invalid parameter range")
                 assert(r[a] ~= nil,"callee should not be null")
                 for i=param_start,param_end do
@@ -308,22 +309,19 @@ function runtime.exec_bytecode(func,upvalue)
                 end            
             end
 
+            local results = {r[a](table.unpack(param))}
+            -- don't save any values for nresult == 1
             if nresult == 0 then
                 -- if nresult is 0, then multiple return results are saved
-                local ret = r[a](table.unpack(param))
-                for i=a,a+#ret - 1 do
-                    r[i] = ret[i-a+1]
+                for i=a,a+#results - 1 do
+                    r[i] = results[i-a+1]
                 end
-                for i=a+#ret,#r do
-                    r[i] = nil
+                top = a + #results - 1 -- set top to last register
+            elseif nresult > 1 then
+                -- if nresult is 2 or more, nresult - 1 return values are saved
+                for i = 0, nresult - 2 do
+                  r[a+i] = results[i+1]
                 end
-            elseif nresult == 1 then
-                -- if nresult is 1, no return results are saved
-                r[a](table.unpack(param))
-            else
-                -- if nresult is 2 or more, return values are saved
-                local result = r[a](table.unpack(param))
-                r[a] = result[1]
             end
         end,
         -- TAILCALL
@@ -331,7 +329,7 @@ function runtime.exec_bytecode(func,upvalue)
         -- RETURN
         [39] = function(a,b,c) 
             local ret_start = a
-            local ret_end = (b==0) and (#r) or (b+a-2)
+            local ret_end = (b==0) and (top) or (b+a-2)
             assert(ret_start<=ret_start,"invalid return result range")
             for i=ret_start,ret_end do
                 table.insert(return_val,r[i])
@@ -368,7 +366,7 @@ function runtime.exec_bytecode(func,upvalue)
             end
             local fpf = runtime.fpf -- fields per flush (default 50)
             if nelement == 0 then
-                for i=1,#r-a do
+                for i=1,top-a do
                     r[a][(c-1)*fpf+i] = r[a+i]
                 end
             else
@@ -412,28 +410,33 @@ function runtime.exec_bytecode(func,upvalue)
     for i=0,func.const_list_size-1 do
         const[i] = func.const[i]
     end
-    assert(func.num_params == #func.args, "unexpect arguments passed")
-    for i=0, func.num_params-1 do
+
+    for i=0, #func.args-1 do
         r[i] = func.args[i+1]
     end
 
     -- do execution
     while pc <= func.code_size do
         local instr = decode_instr(func.code[pc])
+        local ok, err
         if instr.mode == "iABC" then
-            dispatch[instr.instr_id](instr.operand.a,instr.operand.b,instr.operand.c)
+            ok, err = pcall(dispatch[instr.instr_id],instr.operand.a,instr.operand.b,instr.operand.c)
         elseif instr.mode == "iABx" then
-            dispatch[instr.instr_id](instr.operand.a,instr.operand.bx)
+            ok, err = pcall(dispatch[instr.instr_id],instr.operand.a,instr.operand.bx)
         elseif instr.mode == "iAsBx" then
-            dispatch[instr.instr_id](instr.operand.a,instr.operand.sbx)
+            ok, err = pcall(dispatch[instr.instr_id],instr.operand.a,instr.operand.sbx)
         elseif instr.mode == "iAx" then
-            dispatch[instr.instr_id](instr.operand.ax)
+            ok, err = pcall(dispatch[instr.instr_id],instr.operand.ax)
         else
             error("should never reach here:(")    
         end
         
+        if not ok then
+          error("line " .. func.line[pc] .. "(" .. err .. ")")
+        end
+
         if flow_stop then
-            return return_val
+            return table.unpack(return_val)
         end
         pc = pc + 1
     end

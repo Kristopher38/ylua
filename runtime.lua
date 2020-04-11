@@ -126,6 +126,12 @@ function runtime.exec_bytecode(func,upvalue)
     -- auxiliary functions(should factor to oop styles)
     local function rk(index) if index>=256 then return const[index-256] else return r[index] end end
     local function convert_sbx(code) return ((code>>14) & 0x3ffff) - (((1<<18)-1)>>1) end
+    local function unpack_with_nils (t, n, i)
+        i = i or 1
+        if (i <= n) then
+            return t[i], unpack_with_nils(t, n, i+1)
+        end
+    end
     -- bytecode dispatch table
     local dispatch = {
         -- MOVE 
@@ -295,21 +301,25 @@ function runtime.exec_bytecode(func,upvalue)
         end,
         -- CALL
         [37] = function(a,b,c) 
-            local nparam = b
             local nresult = c
             local param = {}
-            if nparam ~= 1 then
+            local nparam
+            if b ~= 1 then
                  -- there are (B-1) parameters
                 local param_start = a + 1
                 local param_end = (b == 0) and top or (a + b - 1)
+                nparam = param_end - param_start + 1
                 assert(param_start<=param_end,"invalid parameter range")
                 assert(r[a] ~= nil,"callee should not be null")
                 for i=param_start,param_end do
                     table.insert(param,r[i])
                 end            
+            elseif b == 1 then
+                nparam = 0
             end
 
-            local results = {r[a](table.unpack(param))}
+            -- workaround for builtin functions
+            local results = {r[a](unpack_with_nils(param, nparam))}
             -- don't save any values for nresult == 1
             if nresult == 0 then
                 -- if nresult is 0, then multiple return results are saved

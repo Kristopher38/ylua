@@ -114,6 +114,7 @@ local function decode_instr(code)
     end
 end
 
+local closures_data = {}
 function runtime.exec_bytecode(func,upvalue)
     -- execution environmnet
     local pc = 1
@@ -130,6 +131,45 @@ function runtime.exec_bytecode(func,upvalue)
         i = i or 1
         if (i <= n) then
             return t[i], unpack_with_nils(t, n, i+1)
+        end
+    end
+    local function get_param_range(a, b)
+        local param_start = a + 1
+        local param_end = (b == 0) and top or (a + b - 1)
+        assert(param_start<=param_end,"invalid parameter range")
+        assert(r[a] ~= nil,"callee should not be null")
+        return param_start, param_end
+    end
+    local function call(a, b, c)
+        local nresult = c
+        local param = {}
+        local nparam
+        if b ~= 1 then
+            -- there are (B-1) parameters
+            local param_start, param_end = get_param_range(a, b)
+            nparam = param_end - param_start + 1
+            for i=param_start,param_end do
+                table.insert(param,r[i])
+            end
+        elseif b == 1 then
+            nparam = 0
+        end
+
+        -- workaround for builtin functions
+        local results = {r[a](unpack_with_nils(param, nparam))}
+        -- don't save any values for nresult == 1
+        if nresult == 0 then
+            -- if nresult is 0, then multiple return results are saved
+            for i=a,a+#results - 1 do
+                r[i] = results[i-a+1]
+            end
+            top = a + #results - 1 -- set top to last register
+        elseif nresult > 1 then
+            -- if nresult is 2 or more, nresult - 1 return values are saved
+            for i = 0, nresult - 2 do
+                r[a+i] = results[i+1]
+            end
+            top = func.max_stack
         end
     end
     -- bytecode dispatch table
@@ -300,42 +340,39 @@ function runtime.exec_bytecode(func,upvalue)
             end
         end,
         -- CALL
-        [37] = function(a,b,c) 
-            local nresult = c
-            local param = {}
-            local nparam
-            if b ~= 1 then
-                 -- there are (B-1) parameters
-                local param_start = a + 1
-                local param_end = (b == 0) and top or (a + b - 1)
-                nparam = param_end - param_start + 1
-                assert(param_start<=param_end,"invalid parameter range")
-                assert(r[a] ~= nil,"callee should not be null")
-                for i=param_start,param_end do
-                    table.insert(param,r[i])
-                end            
-            elseif b == 1 then
-                nparam = 0
-            end
+        [37] = call,
+        -- TAILCALL
+        [38] = function(a,b,c)
+            -- dealing with builtin/foreign functions, no closure data associated with a function
+            if closures_data[r[a]] == nil then
+                call(a, b, c) -- make a normal call since we can't process that function
+            else
+                func = closures_data[r[a]].proto
+                upvalue = closures_data[r[a]].upvalue
 
-            -- workaround for builtin functions
-            local results = {r[a](unpack_with_nils(param, nparam))}
-            -- don't save any values for nresult == 1
-            if nresult == 0 then
-                -- if nresult is 0, then multiple return results are saved
-                for i=a,a+#results - 1 do
-                    r[i] = results[i-a+1]
+                if b ~= 1 then
+                    -- there are (B-1) parameters
+                    local param_start, param_end = get_param_range(a, b)
+                    local nparam = param_end - param_start
+                    -- replace registers on the stack with function arguments
+                    for i = 0, nparam do
+                        r[i] = r[param_start + i]
+                    end
+                    for i = nparam + 1, top do
+                        r[i] = nil
+                    end
                 end
-                top = a + #results - 1 -- set top to last register
-            elseif nresult > 1 then
-                -- if nresult is 2 or more, nresult - 1 return values are saved
-                for i = 0, nresult - 2 do
-                  r[a+i] = results[i+1]
+                -- update or reset the execution variables
+
+                pc = 1
+                const = {}
+                return_val = {}
+                top = func.max_stack
+                for i=0,func.const_list_size-1 do
+                    const[i] = func.const[i]
                 end
             end
         end,
-        -- TAILCALL
-        [38] = function(a,b,c) error("not implemented yet") end,
         -- RETURN
         [39] = function(a,b,c) 
             if b ~= 1 then
@@ -410,6 +447,7 @@ function runtime.exec_bytecode(func,upvalue)
                 proto.args = table.pack(...)
                 return runtime.exec_bytecode(proto, newupvalue)
             end
+            closures_data[r[a]] = {proto = proto, upvalue = newupvalue}
         end,
         -- VARARG
         [46] = function(a,b,c) error("not implemented yet") end,

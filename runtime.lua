@@ -338,11 +338,13 @@ function runtime.exec_bytecode(func,upvalue)
         [38] = function(a,b,c) error("not implemented yet") end,
         -- RETURN
         [39] = function(a,b,c) 
-            local ret_start = a
-            local ret_end = (b==0) and (top) or (b+a-2)
-            assert(ret_start<=ret_start,"invalid return result range")
-            for i=ret_start,ret_end do
-                table.insert(return_val,r[i])
+            if b ~= 1 then
+                local ret_start = a
+                local ret_end = (b==0) and (top) or (b+a-2)
+                assert(ret_start<=ret_end,"invalid return result range")
+                for i=ret_start,ret_end do
+                    table.insert(return_val,r[i])
+                end
             end
             flow_stop = true
         end,
@@ -442,7 +444,7 @@ function runtime.exec_bytecode(func,upvalue)
         end
         
         if not ok then
-          error("line " .. func.line[pc] .. "(" .. err .. ")")
+          error("line " .. func.line[pc] .. "(" .. (err and err or "") .. ")")
         end
 
         if flow_stop then

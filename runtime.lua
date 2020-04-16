@@ -402,9 +402,19 @@ function runtime.exec_bytecode(func,upvalue)
             pc = pc + sbx
         end,
         -- TFORCALL
-        [42] = function(instr) error("not implemented yet") end,
+        [42] = function(a,b,c)
+            local results = {r[a](r[a + 1], r[a + 2])}
+            for i = 1, c do
+                r[a + i + 2] = results[i]
+            end
+        end,
         -- TFORLOOP
-        [43] = function(instr) error("not implemented yet") end,
+        [43] = function(a,sbx)
+            if r[a + 1] then
+              r[a] = r[a + 1]
+              pc = pc + sbx
+            end
+        end,
         -- SETLIST
         [44] = function(a,b,c) 
             local nelement = b

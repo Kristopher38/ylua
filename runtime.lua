@@ -364,7 +364,7 @@ function runtime.exec_bytecode(func,upvalue)
                 end
                 -- update or reset the execution variables
 
-                pc = 1
+                pc = 0 -- this will be incremented in the main loop so PC at the next instruction will be 1
                 const = {}
                 return_val = {}
                 top = func.max_stack

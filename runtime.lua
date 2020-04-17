@@ -349,6 +349,7 @@ function runtime.exec_bytecode(func,upvalue)
             else
                 func = closures_data[r[a]].proto
                 upvalue = closures_data[r[a]].upvalue
+                func.args = {}
 
                 if b ~= 1 then
                     -- there are (B-1) parameters
@@ -357,6 +358,7 @@ function runtime.exec_bytecode(func,upvalue)
                     -- replace registers on the stack with function arguments
                     for i = 0, nparam do
                         r[i] = r[param_start + i]
+                        func.args[i + 1] = r[param_start + i]
                     end
                     for i = nparam + 1, top do
                         r[i] = nil
@@ -460,7 +462,19 @@ function runtime.exec_bytecode(func,upvalue)
             closures_data[r[a]] = {proto = proto, upvalue = newupvalue}
         end,
         -- VARARG
-        [46] = function(a,b,c) error("not implemented yet") end,
+        [46] = function(a,b,c)
+            local varargn = #func.args - func.num_params -- number of variable arguments
+            if varargn < 0 then
+                varargn = 0
+            end
+            if b == 0 then
+                b = varargn
+                top = a + varargn - 1
+            end
+            for i = 0, b - 1 do
+                r[a + i] = func.args[func.num_params + i + 1]
+            end
+        end,
         -- EXTRAARG - shouldn't ever be reached in normal execution as it's essentially used as an
         -- extra data opcode, not an instruction opcode, and is emitted only after SETLIST if C == 0
         [47] = function(ax) error("EXTRAARG executed as normal instruction") end,

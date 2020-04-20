@@ -169,6 +169,8 @@ function runtime.exec_bytecode(func,upvalue)
             for i = 0, nresult - 2 do
                 r[a+i] = results[i+1]
             end
+        end
+        if nresult >= 1 then
             top = func.max_stack
         end
     end
@@ -300,6 +302,7 @@ function runtime.exec_bytecode(func,upvalue)
         -- CONCAT
         [30] = function(a,b,c)
             r[a] = table.concat(r, "", b, c)
+            top = func.max_stack
         end,
         -- JMP
         [31] = function(a,sbx)
@@ -385,6 +388,9 @@ function runtime.exec_bytecode(func,upvalue)
                     table.insert(return_val,r[i])
                 end
             end
+            if b > 0 then
+                top = func.max_stack
+            end
             flow_stop = true
         end,
         -- FORLOOP
@@ -409,6 +415,7 @@ function runtime.exec_bytecode(func,upvalue)
             for i = 1, c do
                 r[a + i + 2] = results[i]
             end
+            top = func.max_stack
         end,
         -- TFORLOOP
         [43] = function(a,sbx)
@@ -435,6 +442,7 @@ function runtime.exec_bytecode(func,upvalue)
                     r[a][(c-1)*fpf+i] = r[a+i]
                 end
             end
+            top = func.max_stack
         end,
         -- CLOSURE
         [45] = function(a,bx) 

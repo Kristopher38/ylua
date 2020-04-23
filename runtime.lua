@@ -163,7 +163,12 @@ function runtime.exec_bytecode(func,upvalue)
             for i=a,a+#results - 1 do
                 r[i] = results[i-a+1]
             end
-            top = a + #results - 1 -- set top to last register
+            top = math.max(a + #results - 1, 0)
+            -- clear the registers which follow the returned values since if we're tailcalling C function we don't know how many values it returns,
+            -- but values in registers following the call instruction shouldn't (?) be reused so it's safe (?) to clear them
+            for i = a+#results, top do
+                r[i] = nil
+            end
         elseif nresult > 1 then
             -- if nresult is 2 or more, nresult - 1 return values are saved
             for i = 0, nresult - 2 do

@@ -148,8 +148,8 @@ function runtime.exec_bytecode(func,upvalue)
             -- there are (B-1) parameters
             local param_start, param_end = get_param_range(a, b)
             nparam = param_end - param_start + 1
-            for i=param_start,param_end do
-                table.insert(param,r[i])
+            for i = 1, nparam do
+                param[i] = r[i + param_start - 1]
             end
         elseif b == 1 then
             nparam = 0

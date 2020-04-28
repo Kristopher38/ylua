@@ -15,9 +15,11 @@ Usage: lua ylua.lua <bytecode_file>
 # Run unit test to make sure it works well
 $ ./runtest
 ```
-Please feel free to issue any bugs or pull request to add new features.
 
-# Reference
+# Contributing
+All standard Lua VM opcodes are implemented and work *most of the time* but not in all circumstances, as YLua doesn't pass [the official Lua tests](https://github.com/lua/lua/tree/v5.3/testes). Any help with fixing the bugs which are detected by those tests is appreciated. Please feel free to issue any bugs or pull request to fix those or add new features.
+
+# References, resources and tools
 [0] **Primary** https://github.com/dibyendumajumdar/ravi/blob/master/readthedocs/lua_bytecode_reference.rst
 
 [1] http://luaforge.net/docman/83/98/ANoFrillsIntroToLua51VMInstructions.pdf
@@ -27,3 +29,9 @@ Please feel free to issue any bugs or pull request to add new features.
 [3] https://www.lua.org/manual/5.3/manual.html
 
 [4] https://blog.tst.sh/lua-5-2-5-3-bytecode-reference-incomplete/
+
+[5] https://www.lua.org/source/5.3/lvm.c.html
+
+[6] https://www.lua.org/source/5.3/ldo.c.html
+
+[7] https://luac.nl

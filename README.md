@@ -17,7 +17,7 @@ $ ./runtest
 ```
 Please feel free to issue any bugs or pull request to add new features.
 
-# Reference
+# References, resources and tools
 [0] **Primary** https://github.com/dibyendumajumdar/ravi/blob/master/readthedocs/lua_bytecode_reference.rst
 
 [1] http://luaforge.net/docman/83/98/ANoFrillsIntroToLua51VMInstructions.pdf
@@ -27,3 +27,9 @@ Please feel free to issue any bugs or pull request to add new features.
 [3] https://www.lua.org/manual/5.3/manual.html
 
 [4] https://blog.tst.sh/lua-5-2-5-3-bytecode-reference-incomplete/
+
+[5] https://www.lua.org/source/5.3/lvm.c.html
+
+[6] https://www.lua.org/source/5.3/ldo.c.html
+
+[7] https://luac.nl

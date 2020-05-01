@@ -167,7 +167,7 @@ function runtime.exec_bytecode(func,upvalue)
                 r[i] = results[i-a+1]
             end
             if results.n == 0 then
-                top = a
+                top = a - 1
             else
                 top = math.max(a + results.n - 1, 0)
             end

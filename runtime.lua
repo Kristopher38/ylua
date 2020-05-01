@@ -121,7 +121,7 @@ function runtime.exec_bytecode(func,upvalue)
     local r ={}
     local const = {}
     local flow_stop = false
-    local return_val = {}
+    local return_val = { n = 0 }
     local top = func.max_stack
 
     -- auxiliary functions(should factor to oop styles)
@@ -136,7 +136,10 @@ function runtime.exec_bytecode(func,upvalue)
     local function get_param_range(a, b)
         local param_start = a + 1
         local param_end = (b == 0) and top or (a + b - 1)
-        assert(param_start<=param_end,"invalid parameter range")
+        -- if b == 0 param_end can be 1 less than param_start signifying no vararg parameters so it shouldn't throw an assertion
+        if b ~= 0 then
+            assert(param_start<=param_end,"invalid parameter range")
+        end
         assert(r[a] ~= nil,"callee should not be null")
         return param_start, param_end
     end
@@ -156,17 +159,21 @@ function runtime.exec_bytecode(func,upvalue)
         end
 
         -- workaround for builtin functions
-        local results = {r[a](unpack_with_nils(param, nparam))}
+        local results = table.pack(r[a](unpack_with_nils(param, nparam)))
         -- don't save any values for nresult == 1
         if nresult == 0 then
             -- if nresult is 0, then multiple return results are saved
-            for i=a,a+#results - 1 do
+            for i=a,a+results.n - 1 do
                 r[i] = results[i-a+1]
             end
-            top = math.max(a + #results - 1, 0)
+            if results.n == 0 then
+                top = a
+            else
+                top = math.max(a + results.n - 1, 0)
+            end
             -- clear the registers which follow the returned values since if we're tailcalling C function we don't know how many values it returns,
             -- but values in registers following the call instruction shouldn't (?) be reused so it's safe (?) to clear them
-            for i = a+#results, top do
+            for i = a+results.n, top do
                 r[i] = nil
             end
         elseif nresult > 1 then
@@ -377,7 +384,7 @@ function runtime.exec_bytecode(func,upvalue)
 
                 pc = 0 -- this will be incremented in the main loop so PC at the next instruction will be 1
                 const = {}
-                return_val = {}
+                return_val = { n = 0 }
                 top = func.max_stack
                 for i=0,func.const_list_size-1 do
                     const[i] = func.const[i]
@@ -389,10 +396,13 @@ function runtime.exec_bytecode(func,upvalue)
             if b ~= 1 then
                 local ret_start = a
                 local ret_end = (b==0) and (top) or (b+a-2)
-                assert(ret_start<=ret_end,"invalid return result range")
+                if b ~= 0 then
+                    assert(ret_start<=ret_end,"invalid return result range")
+                end
                 for i=ret_start,ret_end do
                     table.insert(return_val,r[i])
                 end
+                return_val.n = ret_end - ret_start + 1
             end
             if b > 0 then
                 top = func.max_stack
@@ -524,7 +534,7 @@ function runtime.exec_bytecode(func,upvalue)
         end
 
         if flow_stop then
-            return table.unpack(return_val)
+            return unpack_with_nils(return_val, return_val.n)
         end
         pc = pc + 1
     end

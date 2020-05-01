@@ -368,6 +368,7 @@ function runtime.exec_bytecode(func,upvalue)
                         r[i] = r[param_start + i]
                         func.args[i + 1] = r[param_start + i]
                     end
+                    func.args.n = nparam + 1
                     for i = nparam + 1, top do
                         r[i] = nil
                     end

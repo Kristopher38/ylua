@@ -476,7 +476,7 @@ function runtime.exec_bytecode(func,upvalue)
         end,
         -- VARARG
         [46] = function(a,b,c)
-            local varargn = #func.args - func.num_params -- number of variable arguments
+            local varargn = func.args.n - func.num_params -- number of variable arguments
             if varargn < 0 then
                 varargn = 0
             end
@@ -498,7 +498,7 @@ function runtime.exec_bytecode(func,upvalue)
         const[i] = func.const[i]
     end
 
-    for i=0, #func.args-1 do
+    for i=0, func.args.n-1 do
         r[i] = func.args[i+1]
     end
 

@@ -56,6 +56,7 @@ if filename then
         error("can not open file "..arg[1])
     end
     local func = parser.parse_bytecode(file:read("*all"))
+    func.args = { n = 0 }
     file:close()
     local env = {
         [0]= _ENV

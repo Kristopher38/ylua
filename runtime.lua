@@ -22,6 +22,7 @@
 local runtime={
     debug = false,
     fpf = 50, -- LFIELDS_PER_FLUSH from lopcodes.h
+    stacktrace = {}
 }
 
 ---------------------------------------------------------------------------------
@@ -115,7 +116,7 @@ local function decode_instr(code)
 end
 
 local closures_data = {}
-function runtime.exec_bytecode(func,upvalue)
+function runtime.exec_bytecode(func, upvalue, stacklevel)
     -- execution environmnet
     local pc = 1
     local r ={}
@@ -123,6 +124,8 @@ function runtime.exec_bytecode(func,upvalue)
     local flow_stop = false
     local return_val = { n = 0 }
     local top = func.max_stack
+    local st = runtime.stacktrace
+    stacklevel = stacklevel or 1
 
     -- auxiliary functions(should factor to oop styles)
     local function rk(index) if index>=256 then return const[index-256] else return r[index] end end
@@ -482,7 +485,7 @@ function runtime.exec_bytecode(func,upvalue)
             })
             r[a] = function(...)
                 proto.args = table.pack(...)
-                return runtime.exec_bytecode(proto, newupvalue)
+                return runtime.exec_bytecode(proto, newupvalue, stacklevel + 1)
             end
             closures_data[r[a]] = {proto = proto, upvalue = newupvalue}
         end,
@@ -516,6 +519,7 @@ function runtime.exec_bytecode(func,upvalue)
 
     -- do execution
     while pc <= func.code_size do
+        st[stacklevel] = func.line[pc - 1]
         local instr = decode_instr(func.code[pc])
         if instr.mode == "iABC" then
             dispatch[instr.instr_id](instr.operand.a,instr.operand.b,instr.operand.c)

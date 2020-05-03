@@ -517,21 +517,16 @@ function runtime.exec_bytecode(func,upvalue)
     -- do execution
     while pc <= func.code_size do
         local instr = decode_instr(func.code[pc])
-        local ok, err
         if instr.mode == "iABC" then
-            ok, err = pcall(dispatch[instr.instr_id],instr.operand.a,instr.operand.b,instr.operand.c)
+            dispatch[instr.instr_id](instr.operand.a,instr.operand.b,instr.operand.c)
         elseif instr.mode == "iABx" then
-            ok, err = pcall(dispatch[instr.instr_id],instr.operand.a,instr.operand.bx)
+            dispatch[instr.instr_id](instr.operand.a,instr.operand.bx)
         elseif instr.mode == "iAsBx" then
-            ok, err = pcall(dispatch[instr.instr_id],instr.operand.a,instr.operand.sbx)
+            dispatch[instr.instr_id](instr.operand.a,instr.operand.sbx)
         elseif instr.mode == "iAx" then
-            ok, err = pcall(dispatch[instr.instr_id],instr.operand.ax)
+            dispatch[instr.instr_id](instr.operand.ax)
         else
             error("should never reach here:(")    
-        end
-        
-        if not ok then
-          error("line " .. func.line[pc] .. "(" .. (err and err or "") .. ")")
         end
 
         if flow_stop then

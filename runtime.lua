@@ -396,13 +396,14 @@ function runtime.exec_bytecode(func,upvalue)
             if b ~= 1 then
                 local ret_start = a
                 local ret_end = (b==0) and (top) or (b+a-2)
+                local ret_n = ret_end - ret_start + 1
                 if b ~= 0 then
                     assert(ret_start<=ret_end,"invalid return result range")
                 end
-                for i=ret_start,ret_end do
-                    table.insert(return_val,r[i])
+                for i = 1, ret_n do
+                    return_val[i] = r[i + ret_start - 1]
                 end
-                return_val.n = ret_end - ret_start + 1
+                return_val.n = ret_n
             end
             if b > 0 then
                 top = func.max_stack

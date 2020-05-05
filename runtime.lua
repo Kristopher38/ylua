@@ -432,6 +432,17 @@ function runtime.exec_bytecode(func, upvalues, stacklevel)
                         r[i] = nil
                     end
                 end
+
+                -- set up which variables on the stack should be upvalues
+                for i, proto in pairs(func.proto) do
+                    for _, upvalue in pairs(proto.upvalue) do
+                        if upvalue.instack == 1 and not r.isupval[upvalue.index] then
+                            r.isupval[upvalue.index] = true
+                            r.data[upvalue.index] = {r.data[upvalue.index]}
+                        end
+                    end
+                end
+
                 -- update or reset the execution variables
 
                 pc = 0 -- this will be incremented in the main loop so PC at the next instruction will be 1

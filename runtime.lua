@@ -115,11 +115,54 @@ local function decode_instr(code)
     end
 end
 
+local function shallowCompare(obj1, obj2)
+	for k, v in pairs(obj1) do
+		if obj2[k] == nil or obj2[k] ~= v then
+			return false
+		end
+	end
+	return true
+end
+
 local closures_data = {}
-function runtime.exec_bytecode(func, upvalue, stacklevel)
+function runtime.exec_bytecode(func, upvalues, stacklevel)
     -- execution environmnet
     local pc = 1
-    local r ={}
+    func.r = setmetatable({ isupval = {}, data = {} }, {
+        __index = function(self, idx)
+            if self.isupval[idx] then
+                if self.data[idx] then
+                    return self.data[idx][1]
+                else
+                    return nil
+                end
+            else
+                return self.data[idx]
+            end
+        end,
+        __newindex = function(self, idx, val)
+            if self.isupval[idx] then
+                if self.data[idx] then
+                    self.data[idx][1] = val
+                else
+                    self.data[idx] = {val}
+                end
+            else
+                self.data[idx] = val
+            end
+        end,
+    })
+    local r = func.r
+
+    -- set up which variables on the stack should be upvalues
+    for i, proto in pairs(func.proto) do
+        for _, upvalue in pairs(proto.upvalue) do
+            if upvalue.instack == 1 then
+                r.isupval[upvalue.index] = true
+            end
+        end
+    end
+
     local const = {}
     local flow_stop = false
     local return_val = { n = 0 }
@@ -208,7 +251,7 @@ function runtime.exec_bytecode(func, upvalue, stacklevel)
         [4] = function(a,b,c)
             r[a] = (b~=0) 
             if c ~= 0 then
-                pc = pc+1
+                pc = pc + 1
             end
         end,
         -- LOADNIL
@@ -219,11 +262,11 @@ function runtime.exec_bytecode(func, upvalue, stacklevel)
         end,
         --GETUPVAL
         [6] = function(a,b,c)
-            r[a] =  upvalue[b]
+            r[a] =  upvalues[b][1]
         end,
         --GETTABUP
         [7] = function(a,b,c)
-            r[a] = upvalue[b][rk(c)]
+            r[a] = upvalues[b][1][rk(c)]
         end,
         --GETTABLE
         [8] = function(a,b,c)
@@ -231,11 +274,11 @@ function runtime.exec_bytecode(func, upvalue, stacklevel)
         end,
         --SETTABUP
         [9] = function(a,b,c)
-            upvalue[a][rk(b)]  = rk(c)
+            upvalues[a][1][rk(b)] = rk(c)
         end,
         --SETUPVAL
         [10] = function(a,b,c)
-            upvalue[b] = r[a]
+            upvalues[b][1] = r[a]
         end,
         --SETTABLE
         [11] = function(a,b,c)
@@ -322,6 +365,12 @@ function runtime.exec_bytecode(func, upvalue, stacklevel)
         -- JMP
         [31] = function(a,sbx)
             pc = pc + sbx
+            -- close (in our case, reset registers) upvalues >= A - 1
+            if a ~= 0 then
+                for i = a - 1, top do
+                    r.data[i] = nil
+                end
+            end
         end,
         -- EQ
         [32] = function(a,b,c)
@@ -332,7 +381,7 @@ function runtime.exec_bytecode(func, upvalue, stacklevel)
         -- LT
         [33] = function(a,b,c)  
             if (rk(b) < rk(c)) ~= (a~=0) then
-                pc = pc + 1 
+                pc = pc + 1
             end
         end,
         -- LE
@@ -366,7 +415,7 @@ function runtime.exec_bytecode(func, upvalue, stacklevel)
                 call(a, b, c) -- make a normal call since we can't process that function
             else
                 func = closures_data[r[a]].proto
-                upvalue = closures_data[r[a]].upvalue
+                upvalues = closures_data[r[a]].upvalues
                 func.args = {}
 
                 if b ~= 1 then
@@ -467,27 +516,31 @@ function runtime.exec_bytecode(func, upvalue, stacklevel)
         -- CLOSURE
         [45] = function(a,bx) 
             local proto = func.proto[bx]
-            local newupvalue = setmetatable({}, {
-                __index = function(o,i)
-                    if proto.upvalue[i].instack == 1 then
-                        return r[proto.upvalue[i].index]
-                    else
-                        return upvalue[proto.upvalue[i].index]
-                    end
-                end,
-                __newindex = function(o,i,v)
-                    if proto.upvalue[i].instack == 1 then
-                        r[proto.upvalue[i].index] = v
-                    else
-                        upvalue[proto.upvalue[i].index] = v
-                    end
+            local newupvalue = {}
+            proto.parent = func
+
+            for i, upvalue in pairs(proto.upvalue) do
+                if upvalue.instack == 1 then
+                    newupvalue[i] = r.data[upvalue.index]
+                else
+                    newupvalue[i] = upvalues[upvalue.index]
                 end
-            })
+            end
+
+            -- test if we've got a cached closure already
+            for cached_closure, closure_data in pairs(closures_data) do
+                -- cached closure must have the same prototype and the same set of upvalues
+                if closure_data.proto == proto and shallowCompare(closure_data.upvalues, newupvalue) then
+                    r[a] = cached_closure
+                    return
+                end
+            end
+
             r[a] = function(...)
                 proto.args = table.pack(...)
                 return runtime.exec_bytecode(proto, newupvalue, stacklevel + 1)
             end
-            closures_data[r[a]] = {proto = proto, upvalue = newupvalue}
+            closures_data[r[a]] = {proto = proto, upvalues = newupvalue}
         end,
         -- VARARG
         [46] = function(a,b,c)

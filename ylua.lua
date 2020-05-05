@@ -59,7 +59,7 @@ if filename then
     func.args = { n = 0 }
     file:close()
     local env = {
-        [0]= _ENV
+        [0]= {_ENV}
     }
     local ok, msg = pcall(runtime.exec_bytecode, func, env)
     if not ok then

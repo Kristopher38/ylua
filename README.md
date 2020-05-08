@@ -35,3 +35,5 @@ All standard Lua VM opcodes are implemented and work *most of the time* but not 
 [6] https://www.lua.org/source/5.3/ldo.c.html
 
 [7] https://luac.nl
+
+[8] https://craftinginterpreters.com/closures.html

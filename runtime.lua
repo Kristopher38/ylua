@@ -169,6 +169,7 @@ function runtime.exec_bytecode(func, upvalues, stacklevel)
     local top = func.max_stack
     local st = runtime.stacktrace
     stacklevel = stacklevel or 1
+    func.args.n = func.args.n or #func.args
 
     -- auxiliary functions(should factor to oop styles)
     local function rk(index) if index>=256 then return const[index-256] else return r[index] end end
@@ -583,6 +584,7 @@ function runtime.exec_bytecode(func, upvalues, stacklevel)
 
     -- do execution
     while pc <= func.code_size do
+        local line = func.line[pc - 1]
         st[stacklevel] = func.line[pc - 1]
         local instr = decode_instr(func.code[pc])
         if instr.mode == "iABC" then

@@ -180,7 +180,7 @@ function parser.parse_bytecode(chunk)
 	-- magic number
 	len = string.len("\27Lua")
 	if string.sub(chunk, 1, len) ~= "\27Lua" then
-		error("invalid lua bytecode file magic number")
+		error("attempt to load a text chunk")
 	end
 	idx = idx + len
 

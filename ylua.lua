@@ -23,6 +23,7 @@ package.loaded.parser = nil
 package.loaded.runtime = nil
 local parser = require("parser")
 local runtime = require("runtime")
+local customenv = require("env")
 
 local arg = arg
 if component then -- check if running inside OC
@@ -56,12 +57,8 @@ if filename then
         error("can not open file "..arg[1])
     end
     local func = parser.parse_bytecode(file:read("*all"))
-    func.args = { n = 0 }
     file:close()
-    local env = {
-        [0]= {_ENV}
-    }
-    local ok, msg = pcall(runtime.exec_bytecode, func, env)
+    local ok, msg = pcall(runtime.exec_bytecode, func, customenv)
     if not ok then
         io.stderr:write(string.format("%s\n", msg))
         for i = #runtime.stacktrace, 1, -1 do

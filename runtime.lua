@@ -423,15 +423,16 @@ function runtime.exec_bytecode(func, upvalues, stacklevel)
                     -- there are (B-1) parameters
                     local param_start, param_end = get_param_range(a, b)
                     local nparam = param_end - param_start
-                    -- replace registers on the stack with function arguments
+                    -- place the function arguments in a temporary table (and args table)
+                    local params = {}
                     for i = 0, nparam do
-                        r[i] = r[param_start + i]
+                        params[i] = r[param_start + i]
                         func.args[i + 1] = r[param_start + i]
                     end
                     func.args.n = nparam + 1
-                    for i = nparam + 1, top do
-                        r[i] = nil
-                    end
+                    -- clear the internal tables and overwrite data with parameters table
+                    r.isupval = {}
+                    r.data = params
                 end
 
                 -- set up which variables on the stack should be upvalues

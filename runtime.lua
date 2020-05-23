@@ -22,7 +22,13 @@
 local runtime={
     debug = false,
     fpf = 50, -- LFIELDS_PER_FLUSH from lopcodes.h
-    stacktrace = {}
+    current_stacklevel = 0,
+    currentpc = {},
+    currentline = {},
+    registers = {},
+    upvalues = {},
+    protos = {},
+    closures = {}
 }
 
 ---------------------------------------------------------------------------------
@@ -124,11 +130,11 @@ local function shallowCompare(obj1, obj2)
 	return true
 end
 
-local closures_data = {}
-function runtime.exec_bytecode(func, upvalues, stacklevel)
+function runtime.exec_bytecode(func, upvalues)
     -- execution environmnet
+    local closures_data = runtime.closures
     local pc = 1
-    func.r = setmetatable({ isupval = {}, data = {} }, {
+    local r = setmetatable({ isupval = {}, data = {} }, {
         __index = function(self, idx)
             if self.isupval[idx] then
                 if self.data[idx] then
@@ -152,7 +158,6 @@ function runtime.exec_bytecode(func, upvalues, stacklevel)
             end
         end,
     })
-    local r = func.r
 
     -- set up which variables on the stack should be upvalues
     for i, proto in pairs(func.proto) do
@@ -167,9 +172,12 @@ function runtime.exec_bytecode(func, upvalues, stacklevel)
     local flow_stop = false
     local return_val = { n = 0 }
     local top = func.max_stack
-    local st = runtime.stacktrace
-    stacklevel = stacklevel or 1
+    runtime.current_stacklevel = runtime.current_stacklevel + 1
+    local stacklevel = runtime.current_stacklevel
     func.args.n = func.args.n or #func.args
+    runtime.registers[stacklevel] = r
+    runtime.upvalues[stacklevel] = upvalues
+    runtime.protos[stacklevel] = func
 
     -- auxiliary functions(should factor to oop styles)
     local function rk(index) if index>=256 then return const[index-256] else return r[index] end end
@@ -454,6 +462,8 @@ function runtime.exec_bytecode(func, upvalues, stacklevel)
                 for i=0,func.const_list_size-1 do
                     const[i] = func.const[i]
                 end
+                runtime.registers[stacklevel] = r
+                runtime.upvalues[stacklevel] = upvalues
             end
         end,
         -- RETURN
@@ -551,7 +561,7 @@ function runtime.exec_bytecode(func, upvalues, stacklevel)
 
             r[a] = function(...)
                 proto.args = table.pack(...)
-                return runtime.exec_bytecode(proto, newupvalue, stacklevel + 1)
+                return runtime.exec_bytecode(proto, newupvalue)
             end
             closures_data[r[a]] = {proto = proto, upvalues = newupvalue}
         end,
@@ -585,8 +595,8 @@ function runtime.exec_bytecode(func, upvalues, stacklevel)
 
     -- do execution
     while pc <= func.code_size do
-        local line = func.line[pc - 1]
-        st[stacklevel] = func.line[pc - 1]
+        runtime.currentpc[stacklevel] = pc
+        runtime.currentline[stacklevel] = func.line[pc - 1]
         local instr = decode_instr(func.code[pc])
         if instr.mode == "iABC" then
             dispatch[instr.instr_id](instr.operand.a,instr.operand.b,instr.operand.c)
@@ -601,6 +611,12 @@ function runtime.exec_bytecode(func, upvalues, stacklevel)
         end
 
         if flow_stop then
+            runtime.current_stacklevel = runtime.current_stacklevel - 1
+            runtime.currentpc[stacklevel] = nil
+            runtime.currentline[stacklevel] = nil
+            runtime.registers[stacklevel] = nil
+            runtime.upvalues[stacklevel] = nil
+            runtime.protos[stacklevel] = nil
             return unpack_with_nils(return_val, return_val.n)
         end
         pc = pc + 1

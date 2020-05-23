@@ -61,8 +61,8 @@ if filename then
     local ok, msg = pcall(runtime.exec_bytecode, func, customenv)
     if not ok then
         io.stderr:write(string.format("%s\n", msg))
-        for i = #runtime.stacktrace, 1, -1 do
-            io.stderr:write(string.format("Line: %u\n", runtime.stacktrace[i]))
+        for i = runtime.current_stacklevel, 1, -1 do
+            io.stderr:write(string.format("Line: %u\n", runtime.currentline[i]))
         end
         io.stderr:write("\n")
     end

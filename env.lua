@@ -18,6 +18,27 @@ local function errorfmt(index, funcname, msg)
     return string.format("bad argument #%u to '%s' (%s)", index, funcname, msg)
 end
 
+local function getvarinfo(stacklevel, index)
+    local pc = runtime.currentpc[stacklevel]
+    local proto = runtime.protos[stacklevel]
+    local protos_index = 0
+    local i = 0
+    local varinfo
+    
+    -- iterate over the the localvar table, skipping variables out of scope to get the variable name at a proper index
+    while protos_index < index and i <= #proto.localvar do
+        varinfo = proto.localvar[i]
+        if varinfo.start_pc < pc and varinfo.end_pc >= pc then
+            protos_index = protos_index + 1
+        end
+        i = i + 1
+    end
+    -- if we didn't exhaust the localvar list in the loop before
+    if protos_index == index then
+        return varinfo
+    end
+end
+
 local env = {
     [0] = { _ENV }
 }
@@ -43,37 +64,21 @@ function debuglib.getlocal(f, index)
         end
     else -- type(f) == "number"
         assert(f ~= 0, errorfmt(1, "getlocal", "YLua: introspection of stack at level 0 not supported"))
-        assert(f > 0 and f <= runtime.current_stacklevel, errorfmt(1, "getlocal", "stack level out of range"))
+        assert(f > 0 and f <= runtime.current_stacklevel, errorfmt(1, "getlocal", "level out of range"))
         local stacklevel = runtime.current_stacklevel - f + 1
-        local pc = runtime.currentpc[stacklevel]
         local proto = runtime.protos[stacklevel]
-        local varname, varvalue
         local varinfo
-        local protos_index = 0
-        local i = 0
 
         if index > 0 then
-            -- iterate over the the localvar table, skipping variables out of scope to get the variable name at a proper index
-            while protos_index < index and i <= #proto.localvar do
-                varinfo = proto.localvar[i]
-                if varinfo.start_pc < pc and varinfo.end_pc >= pc then
-                    protos_index = protos_index + 1
-                end
-                i = i + 1
-            end
-            -- if we didn't exhaust the localvar list in the loop before
-            if protos_index == index then
-                varname = varinfo.varname.val
-                varvalue = runtime.registers[stacklevel][index - 1]
+            local varinfo = getvarinfo(stacklevel, index)
+            if varinfo then
+                return varinfo.varname.val, runtime.registers[stacklevel][index - 1]
+            else
+                return nil -- return nil when no variable found
             end
         elseif index < 0 then
             error(errorfmt(2, "getlocal", "YLua: negative stack level not yet supported"))
-        end -- if index is 0, getlocal will return nil
-
-        -- return single nil when no variable found
-        if varname then
-            return varname, varvalue
-        else
+        else -- if index is 0, return nil
             return nil
         end
     end
@@ -84,11 +89,24 @@ function debug.setlocal(level, index, value)
     assert(type(level) == "number", errorfmt(1, "setlocal", "number expected, got " .. type(level)))
     assert(type(index) == "number", errorfmt(2, "setlocal", "number expected, got " .. type(index)))
     assert(level ~= 0, errorfmt(1, "setlocal", "YLua: modifying stack at level 0 not supported"))
-    assert(level > 0 and level <= runtime.current_stacklevel, errorfmt(1, "setlocal", "stack level out of range"))
-
+    assert(level > 0 and level <= runtime.current_stacklevel, errorfmt(1, "setlocal", "level out of range"))
+    
     local stacklevel = runtime.current_stacklevel - level + 1
     local proto = runtime.protos[stacklevel]
-    runtime.registers[stacklevel][index - 1] = value
+    
+    if index > 0 then
+        local varinfo = getvarinfo(stacklevel, index)
+        if varinfo then
+            runtime.registers[stacklevel][index - 1] = value
+            return varinfo.varname.val
+        else
+            return nil -- return nil when no variable found
+        end
+    elseif index < 0 then
+        error(errorfmt(2, "getlocal", "YLua: negative stack level not yet supported"))
+    else -- if index is 0, return nil
+        return nil 
+    end
 end
 
 --[[ natives.load = load

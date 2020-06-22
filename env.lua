@@ -29,12 +29,12 @@ natives.debug = debug
 env[0][1].debug = debuglib
 
 function debuglib.getlocal(f, index)
-    assert(type(f) ~= "thread", errorfmt(1, "getlocal", "thread argument not yet supported"))
+    assert(type(f) ~= "thread", errorfmt(1, "getlocal", "YLua: thread argument not yet supported"))
     assert(type(f) == "number" or type(f) == "function", errorfmt(1, "getlocal", "number expected, got " .. type(f)))
     assert(type(index) == "number", errorfmt(2, "getlocal", "number expected, got " .. type(index)))
 
     if type(f) == "function" then
-        assert(runtime.closures[f], errorfmt(1, "getlocal", "function has to be a Lua function"))
+        assert(runtime.closures[f], errorfmt(1, "getlocal", "YLua: C functions not supported"))
         local proto = runtime.closures[f].proto
         if index > 0 and proto.localvar[index - 1] and proto.localvar[index - 1].start_pc == 0 then
             return proto.localvar[index - 1].varname.val
@@ -42,8 +42,8 @@ function debuglib.getlocal(f, index)
             return nil
         end
     else -- type(f) == "number"
-        assert(f ~= 0, errorfmt(1, "getlocal", "introspection of call stack at level 0 not supported"))
-        assert(f > 0 and f <= runtime.current_stacklevel, errorfmt(1, "getlocal", "level out of range"))
+        assert(f ~= 0, errorfmt(1, "getlocal", "YLua: introspection of stack at level 0 not supported"))
+        assert(f > 0 and f <= runtime.current_stacklevel, errorfmt(1, "getlocal", "stack level out of range"))
         local stacklevel = runtime.current_stacklevel - f + 1
         local pc = runtime.currentpc[stacklevel]
         local proto = runtime.protos[stacklevel]
@@ -67,7 +67,7 @@ function debuglib.getlocal(f, index)
                 varvalue = runtime.registers[stacklevel][index - 1]
             end
         elseif index < 0 then
-            error(errorfmt(2, "getlocal", "negative indices not yet supported"))
+            error(errorfmt(2, "getlocal", "YLua: negative stack level not yet supported"))
         end -- if index is 0, getlocal will return nil
 
         -- return single nil when no variable found
@@ -80,11 +80,11 @@ function debuglib.getlocal(f, index)
 end
 
 function debug.setlocal(level, index, value)
-    assert(type(level) ~= "thread", errorfmt(1, "setlocal", "thread argument not yet supported"))
+    assert(type(level) ~= "thread", errorfmt(1, "setlocal", "YLua: thread argument not yet supported"))
     assert(type(level) == "number", errorfmt(1, "setlocal", "number expected, got " .. type(level)))
     assert(type(index) == "number", errorfmt(2, "setlocal", "number expected, got " .. type(index)))
-    assert(level ~= 0, errorfmt(1, "setlocal", "modifying call stack at level 0 not supported"))
-    assert(level > 0 and level <= runtime.current_stacklevel, errorfmt(1, "setlocal", "level out of range"))
+    assert(level ~= 0, errorfmt(1, "setlocal", "YLua: modifying stack at level 0 not supported"))
+    assert(level > 0 and level <= runtime.current_stacklevel, errorfmt(1, "setlocal", "stack level out of range"))
 
     local stacklevel = runtime.current_stacklevel - level + 1
     local proto = runtime.protos[stacklevel]
